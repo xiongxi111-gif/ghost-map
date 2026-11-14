@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Clean-room guard",
+      "description": "Before any file write, block content that matches the developer's private denylist (kept outside the repo at ~/.ghostmap/denylist.txt) so no proprietary names or structures enter this public project.",
+      "trigger": "PreToolUse",
+      "matcher": "write",
+      "action": {
+        "type": "command",
+        "command": "./scripts/clean-room-guard.sh"
+      },
+      "timeout": 10
+    }
+  ]
+}

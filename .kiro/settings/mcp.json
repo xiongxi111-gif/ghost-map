@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "ghostmap": {
+      "command": "java",
+      "args": ["-jar", "ghostmap-mcp/build/libs/ghostmap-mcp-all.jar", "--snapshot", "snapshots/haunted-house.ghostmap.json"],
+      "disabled": true,
+      "autoApprove": ["ghostmap_status", "find_symbol", "get_callees", "get_callers", "get_edge_evidence"]
+    }
+  }
+}

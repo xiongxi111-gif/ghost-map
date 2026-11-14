@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Property tests on model/join save",
+      "description": "When the agent edits the graph model, join rules, confidence algebra or card builder, run the jqwik property tests for those modules and feed failures back to the agent.",
+      "trigger": "PostFileSave",
+      "matcher": "^(ghostmap-model|ghostmap-core/src/main/java/dev/ghostmap/(join|cards))/.*\\.java$",
+      "action": {
+        "type": "command",
+        "command": "./gradlew -q :ghostmap-model:test :ghostmap-core:test --tests '*Properties' --console=plain"
+      },
+      "timeout": 300
+    }
+  ]
+}

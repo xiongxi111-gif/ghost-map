@@ -1,0 +1,22 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Regenerate fixture snapshot and diff",
+      "description": "At the end of an agent turn, offer to re-index the haunted-house fixture, check it against ground-truth.json, and print the edge-count diff versus the committed snapshot.",
+      "trigger": "Stop",
+      "action": {
+        "type": "command",
+        "command": "./scripts/regen-snapshot.sh fixtures/haunted-house"
+      },
+      "timeout": 600,
+      "confirm": {
+        "question": "Regenerate the haunted-house snapshot and show the diff?",
+        "options": [
+          { "id": "regen", "label": "Yes, regenerate", "run": true },
+          { "id": "skip", "label": "Not this time", "run": false }
+        ]
+      }
+    }
+  ]
+}

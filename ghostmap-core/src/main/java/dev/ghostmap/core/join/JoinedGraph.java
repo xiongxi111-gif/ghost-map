@@ -7,21 +7,31 @@ import dev.ghostmap.model.Node;
 
 import java.util.List;
 
-/** Deterministic L1/L2 join result before snapshot version metadata is available. */
+/** Deterministic joined graph before snapshot version metadata is available. */
 public record JoinedGraph(List<Node> nodes, List<FactNode> unresolvedNodes,
-                          List<JoinedEdge> edges, List<Diagnostic> diagnostics) {
+                          List<JoinedEdge> edges, List<Edge> dynamicEdges,
+                          List<Diagnostic> diagnostics) {
+    public JoinedGraph(List<Node> nodes, List<FactNode> unresolvedNodes,
+                       List<JoinedEdge> edges, List<Diagnostic> diagnostics) {
+        this(nodes, unresolvedNodes, edges, List.of(), diagnostics);
+    }
+
     public JoinedGraph {
-        if (nodes == null || unresolvedNodes == null || edges == null || diagnostics == null) {
+        if (nodes == null || unresolvedNodes == null || edges == null || dynamicEdges == null
+                || diagnostics == null) {
             throw new NullPointerException("joined graph collections must not be null");
         }
         nodes = List.copyOf(nodes);
         unresolvedNodes = List.copyOf(unresolvedNodes);
         edges = List.copyOf(edges);
+        dynamicEdges = List.copyOf(dynamicEdges);
         diagnostics = List.copyOf(diagnostics);
     }
 
-    /** Edges that already have canonical endpoints and can enter a model snapshot. */
+    /** Edges with canonical endpoints that can enter a model snapshot. */
     public List<Edge> modelEdges() {
-        return edges.stream().map(JoinedEdge::modelEdge).flatMap(java.util.Optional::stream).toList();
+        return java.util.stream.Stream.concat(
+                edges.stream().map(JoinedEdge::modelEdge).flatMap(java.util.Optional::stream),
+                dynamicEdges.stream()).toList();
     }
 }

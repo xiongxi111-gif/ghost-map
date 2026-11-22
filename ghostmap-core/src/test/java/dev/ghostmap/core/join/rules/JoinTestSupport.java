@@ -11,7 +11,12 @@ import dev.ghostmap.core.layer.bytecode.JvmInvocationKind;
 import dev.ghostmap.core.layer.source.DynamicCallKind;
 import dev.ghostmap.core.layer.source.SourceCallFact;
 import dev.ghostmap.core.layer.source.SourceCallSite;
+import dev.ghostmap.core.layer.wiring.InjectionKind;
+import dev.ghostmap.core.layer.wiring.WiringBindFact;
+import dev.ghostmap.core.layer.wiring.WiringInjectionFact;
+import dev.ghostmap.core.layer.wiring.WiringInjectionPoint;
 import dev.ghostmap.model.CanonicalId;
+import dev.ghostmap.model.CanonicalId.BeanId;
 import dev.ghostmap.model.CanonicalId.FieldId;
 import dev.ghostmap.model.CanonicalId.MethodId;
 import dev.ghostmap.model.CanonicalId.SiteId;
@@ -118,6 +123,35 @@ final class JoinTestSupport {
     static BytecodeHierarchyFact implementsEdge(TypeId implementation, TypeId contract) {
         return new BytecodeHierarchyFact(EdgeKind.IMPLEMENTS, canonical(implementation), canonical(contract),
                 "Sample.class");
+    }
+
+    static BytecodeCallFact dynamicBytecodeCall(MethodId from, MethodId target, int offset, int line,
+                                                  JvmInvocationKind invocation,
+                                                  BytecodeDynamicKind dynamicKind,
+                                                  Optional<String> constantKey) {
+        String owner = target.binaryOwner().replace('.', '/');
+        DispatchKind dispatch = switch (dynamicKind) {
+            case GET_BEAN, CLASS_LOADING, METHOD_HANDLE, INVOKEDYNAMIC -> DispatchKind.DYNAMIC;
+            case REFLECTION -> DispatchKind.REFLECTION;
+            case REGISTRY -> DispatchKind.REGISTRY;
+            case NONE -> DispatchKind.VIRTUAL;
+        };
+        return new BytecodeCallFact(canonical(from), Optional.of(canonical(target)), new SiteId(from, offset),
+                invocation, owner, target.name(), target.descriptor(),
+                new Evidence.Bytecode("Sample.class", offset, invocation.name().toLowerCase(), owner,
+                        target.name(), target.descriptor()), OptionalInt.of(line), Optional.of("Sample.java"),
+                dynamicKind, dispatch, Optional.empty(), constantKey);
+    }
+
+    static WiringBindFact wiringBind(BeanId bean, TypeId type) {
+        return new WiringBindFact(canonical(bean), canonical(type),
+                new Evidence.Wiring("wiring.xml", 3, bean), List.of());
+    }
+
+    static WiringInjectionFact wiringInjection(BeanId owner, BeanId target, String pointName) {
+        return new WiringInjectionFact(canonical(owner), canonical(target),
+                new WiringInjectionPoint(InjectionKind.PROPERTY, Optional.of(pointName), OptionalInt.empty()),
+                new Evidence.Wiring("wiring.xml", 5, target), List.of());
     }
 
     static SymbolId canonical(CanonicalId id) {

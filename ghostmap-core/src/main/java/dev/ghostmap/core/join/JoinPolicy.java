@@ -4,13 +4,15 @@ import dev.ghostmap.core.join.rules.R01Identity;
 import dev.ghostmap.core.join.rules.R02CallMatch;
 import dev.ghostmap.core.join.rules.R03GeneratedMembers;
 import dev.ghostmap.core.join.rules.R04VirtualExpansion;
+import dev.ghostmap.core.join.rules.R05WiringNarrowing;
+import dev.ghostmap.core.join.rules.R07DynamicSites;
 import dev.ghostmap.core.join.rules.R09Conflicts;
 import dev.ghostmap.core.layer.LayerFacts;
 
 import java.util.Arrays;
 import java.util.List;
 
-/** Fixed-order L1/L2 join policy implemented by Task 6. */
+/** Fixed-order static join policy; runtime rules remain unimplemented. */
 public final class JoinPolicy {
     public static final String VERSION = "jp/v1";
 
@@ -39,6 +41,8 @@ public final class JoinPolicy {
                 new R02CallMatch(),
                 new R03GeneratedMembers(),
                 new R04VirtualExpansion(),
+                new R05WiringNarrowing(),
+                new R07DynamicSites(),
                 new R09Conflicts());
     }
 }

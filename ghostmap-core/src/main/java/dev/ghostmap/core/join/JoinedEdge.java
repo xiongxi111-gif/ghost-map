@@ -29,15 +29,26 @@ import java.util.Set;
 /** Scored call edge in the pre-snapshot joined graph. */
 public record JoinedEdge(SymbolId from, Optional<CanonicalId> target, Optional<SiteId> bytecodeSite,
                          Optional<SourceCallFact> sourceFact, Optional<BytecodeCallFact> bytecodeFact,
+                         List<Evidence> supplementaryEvidence,
                          List<EvidenceContribution> contributions, List<String> rules,
                          DispatchKind dispatch, EdgeStatus status, List<CanonicalId> candidates,
                          boolean staleBuild) {
+    public JoinedEdge(SymbolId from, Optional<CanonicalId> target, Optional<SiteId> bytecodeSite,
+                      Optional<SourceCallFact> sourceFact, Optional<BytecodeCallFact> bytecodeFact,
+                      List<EvidenceContribution> contributions, List<String> rules,
+                      DispatchKind dispatch, EdgeStatus status, List<CanonicalId> candidates,
+                      boolean staleBuild) {
+        this(from, target, bytecodeSite, sourceFact, bytecodeFact, List.of(), contributions, rules,
+                dispatch, status, candidates, staleBuild);
+    }
+
     public JoinedEdge {
         if (from == null || target == null || bytecodeSite == null || sourceFact == null || bytecodeFact == null
-                || contributions == null || rules == null || dispatch == null || status == null
+                || supplementaryEvidence == null || contributions == null || rules == null || dispatch == null || status == null
                 || candidates == null) {
             throw new NullPointerException("joined edge fields must not be null");
         }
+        supplementaryEvidence = List.copyOf(supplementaryEvidence);
         contributions = List.copyOf(contributions);
         rules = List.copyOf(rules);
         candidates = List.copyOf(candidates);
@@ -54,6 +65,7 @@ public record JoinedEdge(SymbolId from, Optional<CanonicalId> target, Optional<S
         List<Evidence> evidence = new ArrayList<>(2);
         sourceFact.map(SourceCallFact::evidence).ifPresent(evidence::add);
         bytecodeFact.map(BytecodeCallFact::evidence).ifPresent(evidence::add);
+        evidence.addAll(supplementaryEvidence);
         return List.copyOf(evidence);
     }
 
@@ -124,11 +136,22 @@ public record JoinedEdge(SymbolId from, Optional<CanonicalId> target, Optional<S
         return copy(target, bytecodeSite, updatedContributions, rules, dispatch, status, candidates, stale);
     }
 
+    public JoinedEdge withSupplementaryEvidence(Evidence evidence,
+                                                List<EvidenceContribution> updatedContributions,
+                                                CanonicalId updatedTarget, EdgeStatus updatedStatus) {
+        List<Evidence> updatedEvidence = new ArrayList<>(supplementaryEvidence);
+        updatedEvidence.add(evidence);
+        return new JoinedEdge(from, Optional.of(updatedTarget), bytecodeSite, sourceFact, bytecodeFact,
+                updatedEvidence, updatedContributions, rules, dispatch, updatedStatus,
+                List.of(updatedTarget), staleBuild);
+    }
+
     private JoinedEdge copy(Optional<CanonicalId> updatedTarget, Optional<SiteId> updatedSite,
                             List<EvidenceContribution> updatedContributions, List<String> updatedRules,
                             DispatchKind updatedDispatch, EdgeStatus updatedStatus,
                             List<CanonicalId> updatedCandidates, boolean updatedStaleBuild) {
-        return new JoinedEdge(from, updatedTarget, updatedSite, sourceFact, bytecodeFact, updatedContributions,
-                updatedRules, updatedDispatch, updatedStatus, updatedCandidates, updatedStaleBuild);
+        return new JoinedEdge(from, updatedTarget, updatedSite, sourceFact, bytecodeFact, supplementaryEvidence,
+                updatedContributions, updatedRules, updatedDispatch, updatedStatus, updatedCandidates,
+                updatedStaleBuild);
     }
 }

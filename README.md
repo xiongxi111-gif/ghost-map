@@ -6,7 +6,7 @@
 > (a tree-sitter parser, a JVM bytecode reader, a Spring wiring resolver, and a live JVM probe), stitched
 > together by one *join policy* and brought to life for agents through MCP.
 
-Status: M2 wiring (secure XML and ASM-based annotation wiring complete; R05/R07 and MCP not started). **Pre-existing code: none.** All code in this repository is written from scratch during the
+Status: M2 wiring (XML/annotation analysis plus R05/R07 join rules complete; MCP remains Task 11). **Pre-existing code: none.** All code in this repository is written from scratch during the
 Kiroween submission period. Demos use public open-source Java projects only.
 
 ---
@@ -105,10 +105,11 @@ requires separately installed native tree-sitter and Java grammar libraries; it 
 Maven/CI runtime. tree-sitter-ng packages those native libraries for the supported CI platforms, avoiding an
 undeclared system installation.
 
-The fixed-order static join runs with `new JoinPolicy().join(sourceFacts, bytecodeFacts)`. It returns a
-`JoinedGraph`, the documented pre-snapshot form containing canonical model nodes, scored call edges, unresolved
-provisional nodes, and diagnostics. The `index` command adds target version metadata and serialises it as
-`ghostmap.snapshot/v1`.
+The fixed-order static join runs with `new JoinPolicy().join(sourceFacts, bytecodeFacts, wiringFacts)`; wiring facts
+are optional, so existing L1/L2-only calls remain valid. R05 narrows wired virtual candidates, while R07 emits a
+resolved or explicit `UNRESOLVED` edge for each detected dynamic bytecode site. The result is a `JoinedGraph`
+containing canonical model nodes, scored edges, unresolved provisional nodes, and diagnostics. The `index` command
+adds target version metadata and serialises it as `ghostmap.snapshot/v1`.
 
 Run XML and annotation wiring together with
 `new WiringLayer().analyse(new LayerInput(Optional.empty(), classRoots, resourceRoots))`; use

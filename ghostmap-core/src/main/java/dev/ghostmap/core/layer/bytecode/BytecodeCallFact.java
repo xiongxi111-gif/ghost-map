@@ -15,11 +15,22 @@ public record BytecodeCallFact(SymbolId from, Optional<SymbolId> target, SiteId 
                                JvmInvocationKind invocationKind, String owner, String methodName,
                                String descriptor, Evidence.Bytecode evidence, OptionalInt sourceLine,
                                Optional<String> sourceFile, BytecodeDynamicKind dynamicKind,
-                               DispatchKind dispatch, Optional<String> bootstrapMethod) implements EdgeFact {
+                               DispatchKind dispatch, Optional<String> bootstrapMethod,
+                               Optional<String> constantStringArgument) implements EdgeFact {
+    public BytecodeCallFact(SymbolId from, Optional<SymbolId> target, SiteId site,
+                            JvmInvocationKind invocationKind, String owner, String methodName,
+                            String descriptor, Evidence.Bytecode evidence, OptionalInt sourceLine,
+                            Optional<String> sourceFile, BytecodeDynamicKind dynamicKind,
+                            DispatchKind dispatch, Optional<String> bootstrapMethod) {
+        this(from, target, site, invocationKind, owner, methodName, descriptor, evidence, sourceLine,
+                sourceFile, dynamicKind, dispatch, bootstrapMethod, Optional.empty());
+    }
+
     public BytecodeCallFact {
         if (from == null || target == null || site == null || invocationKind == null || owner == null
                 || methodName == null || descriptor == null || evidence == null || sourceLine == null
-                || sourceFile == null || dynamicKind == null || dispatch == null || bootstrapMethod == null) {
+                || sourceFile == null || dynamicKind == null || dispatch == null || bootstrapMethod == null
+                || constantStringArgument == null) {
             throw new NullPointerException("bytecode call fields must not be null");
         }
         if (!from.value().equals(site.method().value())) {

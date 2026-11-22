@@ -42,7 +42,8 @@ final class SnapshotAssembler {
     Snapshot assemble(JoinedGraph graph, CodeVersion codeVersion, Set<LayerId> layersRun) {
         List<Edge> edges = distinctEdges(graph.modelEdges());
         List<Node> nodes = closeNodeSet(graph.nodes(), edges);
-        int unmaterialized = graph.edges().size() - graph.modelEdges().size();
+        int materializedCalls = (int) graph.edges().stream().filter(edge -> edge.modelEdge().isPresent()).count();
+        int unmaterialized = graph.edges().size() - materializedCalls;
         BlindSpotReport report = report(nodes, edges, unmaterialized);
         Snapshot placeholder = new Snapshot(Snapshot.SCHEMA, ZERO_HASH, codeVersion,
                 new ToolInfo("ghostmap", "0.1.0", JoinPolicy.VERSION), layersRun, List.of(), nodes, edges, report);

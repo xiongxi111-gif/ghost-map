@@ -16,6 +16,7 @@ import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -110,7 +111,8 @@ class BytecodeLayerTest {
         List<BytecodeCallFact> calls = calls(new BytecodeLayer().analyse(LayerInput.forClassRoots(classes)));
 
         assertTrue(calls.stream().anyMatch(call -> call.methodName().equals("getBean")
-                && call.dynamicKind() == BytecodeDynamicKind.GET_BEAN));
+                && call.dynamicKind() == BytecodeDynamicKind.GET_BEAN
+                && call.constantStringArgument().equals(Optional.of("known"))));
         assertTrue(calls.stream().anyMatch(call -> call.owner().equals("java/lang/reflect/Method")
                 && call.methodName().equals("invoke")
                 && call.dynamicKind() == BytecodeDynamicKind.REFLECTION));

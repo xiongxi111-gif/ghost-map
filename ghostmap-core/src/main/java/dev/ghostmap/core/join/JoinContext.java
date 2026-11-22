@@ -30,6 +30,7 @@ public final class JoinContext {
     private List<Node> nodes = List.of();
     private List<FactNode> unresolvedNodes = List.of();
     private List<JoinedEdge> edges = List.of();
+    private List<dev.ghostmap.model.Edge> dynamicEdges = List.of();
 
     public JoinContext(List<LayerFacts> facts) {
         if (facts == null) {
@@ -123,6 +124,14 @@ public final class JoinContext {
         edges = List.copyOf(updatedEdges);
     }
 
+    public List<dev.ghostmap.model.Edge> dynamicEdges() {
+        return dynamicEdges;
+    }
+
+    public void setDynamicEdges(List<dev.ghostmap.model.Edge> updatedEdges) {
+        dynamicEdges = List.copyOf(updatedEdges);
+    }
+
     public void addDiagnostic(Diagnostic diagnostic) {
         diagnostics.add(diagnostic);
     }
@@ -135,13 +144,16 @@ public final class JoinContext {
                 .comparing((JoinedEdge edge) -> edge.id().value())
                 .thenComparing(edge -> edge.target().map(CanonicalId::value).orElse("")))
                 .toList();
+        List<dev.ghostmap.model.Edge> sortedDynamicEdges = dynamicEdges.stream()
+                .sorted(Comparator.comparing(edge -> edge.id().value())).toList();
         List<Diagnostic> sortedDiagnostics = diagnostics.stream().sorted(Comparator
                 .comparing((Diagnostic diagnostic) -> diagnostic.code().name())
                 .thenComparing(Diagnostic::file)
                 .thenComparingInt(Diagnostic::line)
                 .thenComparing(Diagnostic::message))
                 .toList();
-        return new JoinedGraph(sortedNodes, sortedUnresolved, sortedEdges, sortedDiagnostics);
+        return new JoinedGraph(sortedNodes, sortedUnresolved, sortedEdges, sortedDynamicEdges,
+                sortedDiagnostics);
     }
 
     private static String canonicalAttributes(FactNode node) {

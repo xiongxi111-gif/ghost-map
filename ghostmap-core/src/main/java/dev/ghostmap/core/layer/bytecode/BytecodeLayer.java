@@ -392,6 +392,7 @@ public final class BytecodeLayer implements Layer {
             private int currentLine;
             private int firstLine = Integer.MAX_VALUE;
             private int lastLine = Integer.MIN_VALUE;
+            private String pendingStringConstant;
 
             private MethodCollector(int methodAccess, String name, String descriptor, Consumer<FactNode> sink) {
                 super(Opcodes.ASM9);
@@ -416,23 +417,69 @@ public final class BytecodeLayer implements Layer {
             }
 
             @Override
+            public void visitLdcInsn(Object value) {
+                if (value instanceof String string) {
+                    pendingStringConstant = string;
+                }
+            }
+
+            @Override
+            public void visitVarInsn(int opcode, int variableIndex) {
+                pendingStringConstant = null;
+            }
+
+            @Override
+            public void visitFieldInsn(int opcode, String owner, String fieldName, String fieldDescriptor) {
+                pendingStringConstant = null;
+            }
+
+            @Override
+            public void visitInsn(int opcode) {
+                pendingStringConstant = null;
+            }
+
+            @Override
+            public void visitIntInsn(int opcode, int operand) {
+                pendingStringConstant = null;
+            }
+
+            @Override
+            public void visitTypeInsn(int opcode, String typeName) {
+                pendingStringConstant = null;
+            }
+
+            @Override
+            public void visitJumpInsn(int opcode, Label label) {
+                pendingStringConstant = null;
+            }
+
+            @Override
+            public void visitIincInsn(int variableIndex, int increment) {
+                pendingStringConstant = null;
+            }
+
+            @Override
             public void visitMethodInsn(int opcode, String owner, String invokedName, String invokedDescriptor,
                                         boolean isInterface) {
                 JvmInvocationKind invocationKind = invocationKind(opcode);
                 int offset = reader.instructionOffset();
                 OptionalInt line = currentLine > 0 ? OptionalInt.of(currentLine) : OptionalInt.empty();
                 BytecodeDynamicKind dynamic = dynamicKind(owner, invokedName);
+                Optional<String> constantString = dynamic == BytecodeDynamicKind.NONE
+                        ? Optional.empty() : Optional.ofNullable(pendingStringConstant);
+                pendingStringConstant = null;
                 DispatchKind dispatch = dispatch(invocationKind, dynamic, "");
                 Evidence.Bytecode evidence = new Evidence.Bytecode(classFile, offset,
                         invocationKind.name().toLowerCase(Locale.ROOT), owner, invokedName, invokedDescriptor);
                 edges.add(new BytecodeCallFact(canonical(methodId), methodTarget(owner, invokedName, invokedDescriptor),
                         new SiteId(methodId, offset), invocationKind, owner, invokedName, invokedDescriptor, evidence,
-                        line, Optional.ofNullable(sourceFile), dynamic, dispatch, Optional.empty()));
+                        line, Optional.ofNullable(sourceFile), dynamic, dispatch, Optional.empty(), constantString));
             }
 
             @Override
             public void visitInvokeDynamicInsn(String invokedName, String invokedDescriptor,
                                                Handle bootstrapMethodHandle, Object... bootstrapMethodArguments) {
+                pendingStringConstant = null;
                 int offset = reader.instructionOffset();
                 OptionalInt line = currentLine > 0 ? OptionalInt.of(currentLine) : OptionalInt.empty();
                 String owner = bootstrapMethodHandle.getOwner();

@@ -74,6 +74,7 @@
           <artifactId>maven-surefire-plugin</artifactId>
           <version>3.5.4</version>
           <configuration>
+            <argLine>--enable-native-access=ALL-UNNAMED</argLine>
             <failIfNoSpecifiedTests>false</failIfNoSpecifiedTests>
             <includes>
               <include>**/*Test.java</include>

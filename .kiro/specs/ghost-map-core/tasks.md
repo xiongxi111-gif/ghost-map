@@ -19,7 +19,7 @@ Dates below are Beijing dates. Each task lists the requirements it satisfies.
   - _Requirements: 10.1_
 
 ## M1 — Static layers L1 + L2 (Nov 17–20)
-- [ ] 4. L1 SourceLayer with tree-sitter (jtreesitter; fallback tree-sitter-ng)
+- [x] 4. L1 SourceLayer with tree-sitter (jtreesitter; fallback tree-sitter-ng)
   - declarations, invocations, annotations, string literals at dynamic sites, best-effort receiver typing
   - parse-error diagnostics
   - _Requirements: 1.1–1.4_

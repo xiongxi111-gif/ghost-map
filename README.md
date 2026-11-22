@@ -6,7 +6,7 @@
 > (a tree-sitter parser, a JVM bytecode reader, a Spring wiring resolver, and a live JVM probe), stitched
 > together by one *join policy* and brought to life for agents through MCP.
 
-Status: M0 foundation complete (Maven build, graph model, and synthetic fixture; analysis layers not started). **Pre-existing code: none.** All code in this repository is written from scratch during the
+Status: M1 static analysis (L1 source layer complete; bytecode, wiring, and runtime layers not started). **Pre-existing code: none.** All code in this repository is written from scratch during the
 Kiroween submission period. Demos use public open-source Java projects only.
 
 ---
@@ -88,21 +88,27 @@ Third-party libraries are used only as declared dependencies, never copied in. T
 | Where | Dependency | Why |
 |---|---|---|
 | all Java modules (test) | JUnit 5 (`junit-jupiter`, EPL-2.0), jqwik (EPL-2.0) | example and property-based tests |
+| `ghostmap-core` | tree-sitter-ng + tree-sitter-java (MIT) | L1 Java parsing with bundled Linux/macOS/Windows native libraries |
 | `fixtures/haunted-house` | Spring Framework (Apache-2.0), Lombok (MIT) | synthetic wiring, proxy, JDBC, and generated-member target |
 | `fixtures/haunted-house` (test) | Spring Test (Apache-2.0), H2 (MPL-2.0/EPL-1.0), Jackson (Apache-2.0), JUnit 5 (EPL-2.0) | executable fixture and ground-truth validation |
 | `web/` | React, React DOM (MIT) | UI |
 | `web/` (build) | Vite, `@vitejs/plugin-react` (MIT), TypeScript (Apache-2.0), `@types/react*` (MIT) | static build |
 
 Planned, added by the task that first needs them (see [`tasks.md`](.kiro/specs/ghost-map-core/tasks.md)):
-jtreesitter (MIT), ASM (BSD-3), Byte Buddy (Apache-2.0), picocli (Apache-2.0),
+ASM (BSD-3), Byte Buddy (Apache-2.0), picocli (Apache-2.0),
 MCP Java SDK (MIT), Cytoscape.js (MIT), fast-check (MIT).
+
+L1 uses the permitted `bonede/tree-sitter-ng` fallback behind `SourceLayer`. The official jtreesitter artifact
+requires separately installed native tree-sitter and Java grammar libraries; it does not provide a self-contained
+Maven/CI runtime. tree-sitter-ng packages those native libraries for the supported CI platforms, avoiding an
+undeclared system installation.
 
 ## Build
 
 Requires JDK 25 and Node 22+.
 
 ```
-./mvnw -B verify                                      # analysis engine modules
+./mvnw -B verify                                     # analysis engine modules
 ./mvnw -B -f fixtures/haunted-house/pom.xml verify  # standalone synthetic fixture
 cd web && npm ci && npm run build
 ```

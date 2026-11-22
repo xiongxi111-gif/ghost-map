@@ -13,11 +13,34 @@
   <artifactId>ghostmap-core</artifactId>
   <description>Analysis layers, join policy, cards, and reports.</description>
 
+  <properties>
+    <tree-sitter.version>0.26.6</tree-sitter.version>
+    <tree-sitter-java.version>0.23.5</tree-sitter-java.version>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>dev.ghostmap</groupId>
       <artifactId>ghostmap-model</artifactId>
       <version>${project.version}</version>
+    </dependency>
+    <!-- MIT-licensed tree-sitter-ng bundles native runtimes for deterministic CI parsing. -->
+    <dependency>
+      <groupId>io.github.bonede</groupId>
+      <artifactId>tree-sitter</artifactId>
+      <version>${tree-sitter.version}</version>
+    </dependency>
+    <!-- MIT-licensed official Java grammar packaged for tree-sitter-ng. -->
+    <dependency>
+      <groupId>io.github.bonede</groupId>
+      <artifactId>tree-sitter-java</artifactId>
+      <version>${tree-sitter-java.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>io.github.bonede</groupId>
+          <artifactId>tree-sitter</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
   </dependencies>
 </project>

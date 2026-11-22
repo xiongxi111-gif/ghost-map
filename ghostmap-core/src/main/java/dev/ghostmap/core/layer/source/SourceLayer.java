@@ -261,12 +261,15 @@ public final class SourceLayer implements Layer {
                     .map(SourceTypeResolver.ResolvedType::descriptor);
             Optional<String> descriptor = methodDescriptor(parameters, returnDescriptor);
             SourceLocation location = unit.location(declaration);
-            SymbolId id = descriptor.<SymbolId>map(value -> canonical(new MethodId(owner.orElseThrow().id().binaryName(),
-                            name, value)))
-                    .orElseGet(() -> new ProvisionalId(NodeKind.METHOD, owner.orElseThrow().id(), name, arity,
-                            location.line(), location.endLine()));
+            boolean provisionalOwner = hasAncestorBefore(declaration.getParent(), owner.orElseThrow().node(),
+                    "object_creation_expression");
+            SymbolId id = descriptor.isPresent() && !provisionalOwner
+                    ? canonical(new MethodId(owner.orElseThrow().id().binaryName(), name, descriptor.orElseThrow()))
+                    : new ProvisionalId(NodeKind.METHOD, owner.orElseThrow().id(), name, arity,
+                    location.line(), location.endLine());
             Map<String, JsonValue> extras = new LinkedHashMap<>();
             extras.put("arity", new NumberValue(BigDecimal.valueOf(arity)));
+            extras.put("ownerProvisional", new BooleanValue(provisionalOwner));
             extras.put("parameterTypes", new ArrayValue(parameters.stream()
                     .map(parameter -> (JsonValue) new StringValue(parameter.sourceType())).toList()));
             if (!constructor) {
@@ -339,7 +342,8 @@ public final class SourceLayer implements Layer {
                     : stringLiterals(unit, argumentsNode.orElseThrow());
             DispatchKind dispatch = dispatch(dynamicKind, receiver, receiverType, method.orElseThrow(), typeIndex);
             SourceLocation location = unit.location(call);
-            Evidence.Ast evidence = new Evidence.Ast(unit.displayPath(), location.line(), unit.text(call));
+            int evidenceLine = line(nameNode.orElseThrow().getStartPoint());
+            Evidence.Ast evidence = new Evidence.Ast(unit.displayPath(), evidenceLine, unit.text(call));
             SourceCallSite site = new SourceCallSite(method.orElseThrow().node().id(), location,
                     call.getStartPoint().getColumn() + 1);
             outputEdges.add(new SourceCallFact(method.orElseThrow().node().id(), site, evidence, receiver,
@@ -534,6 +538,19 @@ public final class SourceLayer implements Layer {
         attrs.put("provisional", new BooleanValue(provisional));
         attrs.putAll(extras);
         return Map.copyOf(attrs);
+    }
+
+    private static boolean hasAncestorBefore(TSNode start, TSNode boundary, String type) {
+        TSNode current = start;
+        SourceQueries.NodeKey boundaryKey = SourceQueries.NodeKey.of(boundary);
+        while (current != null && !current.isNull()
+                && !SourceQueries.NodeKey.of(current).equals(boundaryKey)) {
+            if (type.equals(current.getType())) {
+                return true;
+            }
+            current = current.getParent();
+        }
+        return false;
     }
 
     private static Optional<TSNode> ancestor(TSNode start, Set<String> types) {

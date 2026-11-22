@@ -29,7 +29,7 @@ Dates below are Beijing dates. Each task lists the requirements it satisfies.
 - [x] 6. Join rules R01 Identity, R02 Call match, R03 Generated members, R04 Virtual expansion, R09 Conflicts
   - one jqwik `*Properties` class per rule
   - _Requirements: 5.1–5.4, 5.7, 5.8_
-- [ ] 7. CLI `ghostmap index --src --classes --out` producing a snapshot for haunted-house and both petclinics
+- [x] 7. CLI `ghostmap index --src --classes --out` producing a snapshot for haunted-house and both petclinics
   - **Checkpoint:** AST-only vs AST+bytecode diff visible on the fixture.
 
 ## M2 — Wiring layer L3 + dynamic sites (Nov 21–24)

@@ -6,7 +6,7 @@
 > (a tree-sitter parser, a JVM bytecode reader, a Spring wiring resolver, and a live JVM probe), stitched
 > together by one *join policy* and brought to life for agents through MCP.
 
-Status: M1 static analysis (L1 source, L2 bytecode, and Task 6 static join rules complete; later layers not started). **Pre-existing code: none.** All code in this repository is written from scratch during the
+Status: M1 static analysis complete (L1 source, L2 bytecode, static join, and versioned index snapshots). **Pre-existing code: none.** All code in this repository is written from scratch during the
 Kiroween submission period. Demos use public open-source Java projects only.
 
 ---
@@ -90,13 +90,14 @@ Third-party libraries are used only as declared dependencies, never copied in. T
 | all Java modules (test) | JUnit 5 (`junit-jupiter`, EPL-2.0), jqwik (EPL-2.0) | example and property-based tests |
 | `ghostmap-core` | tree-sitter-ng + tree-sitter-java (MIT), ASM (BSD-3-Clause) | L1 Java parsing with bundled natives; L2 class/JAR reading without class loading |
 | `ghostmap-core` (test) | Lombok (MIT) | compile self-contained generated-member bytecode samples |
+| `ghostmap-cli` | picocli (Apache-2.0) | validated commands, usage help, and process exit codes |
 | `fixtures/haunted-house` | Spring Framework (Apache-2.0), Lombok (MIT) | synthetic wiring, proxy, JDBC, and generated-member target |
 | `fixtures/haunted-house` (test) | Spring Test (Apache-2.0), H2 (MPL-2.0/EPL-1.0), Jackson (Apache-2.0), JUnit 5 (EPL-2.0) | executable fixture and ground-truth validation |
 | `web/` | React, React DOM (MIT) | UI |
 | `web/` (build) | Vite, `@vitejs/plugin-react` (MIT), TypeScript (Apache-2.0), `@types/react*` (MIT) | static build |
 
 Planned, added by the task that first needs them (see [`tasks.md`](.kiro/specs/ghost-map-core/tasks.md)):
-Byte Buddy (Apache-2.0), picocli (Apache-2.0),
+Byte Buddy (Apache-2.0),
 MCP Java SDK (MIT), Cytoscape.js (MIT), fast-check (MIT).
 
 L1 uses the permitted `bonede/tree-sitter-ng` fallback behind `SourceLayer`. The official jtreesitter artifact
@@ -106,7 +107,8 @@ undeclared system installation.
 
 The fixed-order static join runs with `new JoinPolicy().join(sourceFacts, bytecodeFacts)`. It returns a
 `JoinedGraph`, the documented pre-snapshot form containing canonical model nodes, scored call edges, unresolved
-provisional nodes, and diagnostics. Task 7 will add repository version metadata and serialise this into a snapshot.
+provisional nodes, and diagnostics. The `index` command adds target version metadata and serialises it as
+`ghostmap.snapshot/v1`.
 
 ## Build
 
@@ -119,6 +121,19 @@ cd web && npm ci && npm run build
 ```
 
 CI (`.github/workflows/ci.yml`) runs all three.
+
+## Index CLI
+
+Build/install the reactor artifacts once, then run the configured picocli main class:
+
+```bash
+./mvnw -q -pl ghostmap-cli -am install -DskipTests
+./mvnw -q -f ghostmap-cli/pom.xml exec:java \
+  -Dexec.args="index --src fixtures/haunted-house/src/main/java --classes fixtures/haunted-house/target/classes --out snapshots/haunted-house-static.ghostmap.json"
+```
+
+Omit `--classes` for an AST-only snapshot. `--classes` accepts comma-separated class directories or JARs.
+`scripts/regen-snapshot.sh` wraps the same command and explicitly skips the not-yet-implemented benchmark/diff steps.
 
 ## Repository layout
 

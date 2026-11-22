@@ -13,11 +13,21 @@
   <artifactId>ghostmap-cli</artifactId>
   <description>Ghost Map command-line interface.</description>
 
+  <properties>
+    <picocli.version>4.7.7</picocli.version>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>dev.ghostmap</groupId>
       <artifactId>ghostmap-core</artifactId>
       <version>${project.version}</version>
+    </dependency>
+    <!-- Apache-2.0 picocli provides validated subcommands, options, usage, and exit codes. -->
+    <dependency>
+      <groupId>info.picocli</groupId>
+      <artifactId>picocli</artifactId>
+      <version>${picocli.version}</version>
     </dependency>
   </dependencies>
 
@@ -27,6 +37,9 @@
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
         <version>3.5.0</version>
+        <configuration>
+          <mainClass>dev.ghostmap.cli.GhostMapCli</mainClass>
+        </configuration>
       </plugin>
     </plugins>
   </build>

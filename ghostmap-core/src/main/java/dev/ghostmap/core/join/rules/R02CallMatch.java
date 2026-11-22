@@ -9,6 +9,7 @@ import dev.ghostmap.core.layer.bytecode.BytecodeCallFact;
 import dev.ghostmap.core.layer.bytecode.JvmInvocationKind;
 import dev.ghostmap.core.layer.source.SourceCallFact;
 import dev.ghostmap.model.CanonicalId;
+import dev.ghostmap.model.CanonicalId.MethodId;
 import dev.ghostmap.model.DispatchKind;
 import dev.ghostmap.model.EdgeStatus;
 import dev.ghostmap.model.LayerId;
@@ -92,7 +93,8 @@ public final class R02CallMatch implements JoinRule {
                 .orElseGet(() -> bytecode.orElseThrow().from());
         Optional<CanonicalId> target = bytecode.flatMap(BytecodeCallFact::target)
                 .filter(SymbolId.Canonical.class::isInstance).map(SymbolId.Canonical.class::cast)
-                .map(SymbolId.Canonical::id);
+                .map(SymbolId.Canonical::id)
+                .or(() -> source.flatMap(fact -> sourceTarget(context, fact)));
         List<EvidenceContribution> contributions = new ArrayList<>(2);
         source.ifPresent(fact -> contributions.add(new EvidenceContribution(LayerId.AST,
                 fact.receiverType().isPresent() ? AST_RECEIVER_RESOLVED_WEIGHT : AST_NAME_ONLY_WEIGHT,
@@ -113,6 +115,24 @@ public final class R02CallMatch implements JoinRule {
         rules.add(ID);
         return new JoinedEdge(from, target, bytecode.map(BytecodeCallFact::site), source, bytecode,
                 contributions, rules, dispatch, status, candidates, false);
+    }
+
+    private static Optional<CanonicalId> sourceTarget(JoinContext context, SourceCallFact call) {
+        if (call.receiverType().isEmpty()) {
+            return Optional.empty();
+        }
+        String owner = call.receiverType().orElseThrow().binaryName();
+        List<CanonicalId> candidates = context.nodes().stream()
+                .map(node -> node.id())
+                .filter(MethodId.class::isInstance)
+                .map(MethodId.class::cast)
+                .filter(method -> method.binaryOwner().equals(owner))
+                .filter(method -> method.name().equals(call.methodName()))
+                .filter(method -> Type.getArgumentTypes(method.descriptor()).length == call.arity())
+                .map(method -> (CanonicalId) method)
+                .distinct()
+                .toList();
+        return candidates.size() == 1 ? Optional.of(candidates.get(0)) : Optional.empty();
     }
 
     private static double bytecodeWeight(JvmInvocationKind kind) {

@@ -60,7 +60,7 @@ public final class R01Identity implements JoinRule {
                 unresolved.add(node);
                 continue;
             }
-            List<JoinContext.NodeFact> candidates = candidates(provisional, bytecodeMethods);
+            List<JoinContext.NodeFact> candidates = candidates(node, provisional, bytecodeMethods);
             if (candidates.size() == 1) {
                 SymbolId.Canonical canonical = (SymbolId.Canonical) candidates.get(0).node().id();
                 context.mapIdentity(provisional, canonical.id());
@@ -88,15 +88,20 @@ public final class R01Identity implements JoinRule {
         context.setUnresolvedNodes(unresolved);
     }
 
-    private static List<JoinContext.NodeFact> candidates(ProvisionalId provisional,
+    private static List<JoinContext.NodeFact> candidates(FactNode sourceNode, ProvisionalId provisional,
                                                          List<JoinContext.NodeFact> bytecodeMethods) {
         if (provisional.kind() != NodeKind.METHOD) {
             return List.of();
         }
+        boolean provisionalOwner = sourceNode.attrs().get("ownerProvisional") instanceof BooleanValue value
+                && value.value();
         return bytecodeMethods.stream().filter(candidate -> {
             SymbolId.Canonical canonical = (SymbolId.Canonical) candidate.node().id();
             MethodId method = (MethodId) canonical.id();
-            return method.binaryOwner().equals(provisional.owner().binaryName())
+            boolean ownerMatches = method.binaryOwner().equals(provisional.owner().binaryName())
+                    || provisionalOwner
+                    && method.binaryOwner().startsWith(provisional.owner().binaryName() + '$');
+            return ownerMatches
                     && method.name().equals(provisional.name())
                     && Type.getArgumentTypes(method.descriptor()).length == provisional.arity()
                     && rangesOverlap(provisional, candidate.node().sourceLocation());
@@ -104,8 +109,8 @@ public final class R01Identity implements JoinRule {
     }
 
     private static boolean rangesOverlap(ProvisionalId provisional, Optional<SourceLocation> candidate) {
-        return candidate.filter(location -> provisional.startLine() <= location.endLine()
-                && location.line() <= provisional.endLine()).isPresent();
+        return candidate.map(location -> provisional.startLine() <= location.endLine()
+                && location.line() <= provisional.endLine()).orElse(true);
     }
 
     private static Node merge(CanonicalId id, List<JoinContext.NodeFact> facts) {

@@ -103,6 +103,27 @@ class SourceLayerFailureTest {
     }
 
     @Test
+    void multilineInvocationUsesMethodNameLineAsCallEvidence() throws Exception {
+        Path root = Files.createDirectory(temporaryDirectory.resolve("multiline"));
+        Files.writeString(root.resolve("Multiline.java"), """
+                package sample;
+                class Multiline {
+                    String clean() {
+                        return "ghost"
+                                .strip();
+                    }
+                }
+                """);
+
+        SourceCallFact call = new SourceLayer().analyse(new LayerInput(root)).edges().stream()
+                .map(SourceCallFact.class::cast).filter(candidate -> candidate.methodName().equals("strip"))
+                .findFirst().orElseThrow();
+
+        assertEquals(5, call.evidence().line());
+        assertEquals(4, call.site().location().line());
+    }
+
+    @Test
     void memberTypesAndArrayDescriptorsUseJvmBinaryIdentity() throws Exception {
         Path root = Files.createDirectory(temporaryDirectory.resolve("nested"));
         Files.writeString(root.resolve("Outer.java"), """

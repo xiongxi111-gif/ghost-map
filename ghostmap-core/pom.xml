@@ -16,6 +16,8 @@
   <properties>
     <tree-sitter.version>0.26.6</tree-sitter.version>
     <tree-sitter-java.version>0.23.5</tree-sitter-java.version>
+    <asm.version>9.11.1</asm.version>
+    <lombok.version>1.18.48</lombok.version>
   </properties>
 
   <dependencies>
@@ -41,6 +43,19 @@
           <artifactId>tree-sitter</artifactId>
         </exclusion>
       </exclusions>
+    </dependency>
+    <!-- BSD-3-Clause ASM reads class files directly without loading target classes. -->
+    <dependency>
+      <groupId>org.ow2.asm</groupId>
+      <artifactId>asm</artifactId>
+      <version>${asm.version}</version>
+    </dependency>
+    <!-- MIT-licensed Lombok is test-only for generated-member bytecode fixtures. -->
+    <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+      <version>${lombok.version}</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 </project>

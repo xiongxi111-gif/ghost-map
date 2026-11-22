@@ -23,7 +23,7 @@ Dates below are Beijing dates. Each task lists the requirements it satisfies.
   - declarations, invocations, annotations, string literals at dynamic sites, best-effort receiver typing
   - parse-error diagnostics
   - _Requirements: 1.1–1.4_
-- [ ] 5. L2 BytecodeLayer with ASM: members, `invoke*` edges with line numbers, hierarchy, annotations, generated flags,
+- [x] 5. L2 BytecodeLayer with ASM: members, `invoke*` edges with line numbers, hierarchy, annotations, generated flags,
   dynamic-site detection
   - _Requirements: 2.1–2.5_
 - [ ] 6. Join rules R01 Identity, R02 Call match, R03 Generated members, R04 Virtual expansion, R09 Conflicts

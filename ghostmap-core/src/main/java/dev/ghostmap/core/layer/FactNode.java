@@ -10,9 +10,15 @@ import java.util.Optional;
 
 /** Declaration node emitted before cross-layer identity reconciliation. */
 public record FactNode(SymbolId id, NodeKind kind, String name, Optional<TypeId> owner,
-                       Map<String, JsonValue> attrs, SourceLocation location) {
+                       Map<String, JsonValue> attrs, Optional<SourceLocation> sourceLocation) {
+    public FactNode(SymbolId id, NodeKind kind, String name, Optional<TypeId> owner,
+                    Map<String, JsonValue> attrs, SourceLocation location) {
+        this(id, kind, name, owner, attrs, Optional.of(location));
+    }
+
     public FactNode {
-        if (id == null || kind == null || name == null || owner == null || attrs == null || location == null) {
+        if (id == null || kind == null || name == null || owner == null || attrs == null
+                || sourceLocation == null) {
             throw new NullPointerException("fact node fields must not be null");
         }
         if (id.kind() != kind) {
@@ -22,5 +28,10 @@ public record FactNode(SymbolId id, NodeKind kind, String name, Optional<TypeId>
             throw new IllegalArgumentException("name must not be blank");
         }
         attrs = Map.copyOf(attrs);
+    }
+
+    /** Returns the required source location for source-layer facts. */
+    public SourceLocation location() {
+        return sourceLocation.orElseThrow(() -> new IllegalStateException("fact has no source location"));
     }
 }

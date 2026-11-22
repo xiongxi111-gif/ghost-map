@@ -57,7 +57,7 @@ public final class SourceLayer implements Layer {
         if (input == null) {
             throw new NullPointerException("input");
         }
-        Path root = input.sourceRoot();
+        Path root = input.requireSourceRoot();
         List<Diagnostic> diagnostics = new ArrayList<>();
         if (!Files.exists(root)) {
             diagnostics.add(rootDiagnostic(DiagnosticCode.SOURCE_ROOT_NOT_FOUND, root, "source root does not exist"));

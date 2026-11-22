@@ -1,0 +1,18 @@
+# Build output
+.gradle/
+build/
+out/
+*.class
+# Web
+web/node_modules/
+web/dist/
+# IDE / OS
+.idea/
+*.iml
+.vscode/
+.DS_Store
+# Demo targets are fetched by script, never vendored
+bench/targets/
+# Local-only (docs/kiro-logs is intentionally left untracked by the owner)
+docs/kiro-logs/
+# NOTE: /.kiro is committed and must never be listed here.

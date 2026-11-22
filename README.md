@@ -6,7 +6,7 @@
 > (a tree-sitter parser, a JVM bytecode reader, a Spring wiring resolver, and a live JVM probe), stitched
 > together by one *join policy* and brought to life for agents through MCP.
 
-Status: founding spec (pre-code). All code in this repository is written from scratch during the
+Status: M0 foundation (build skeleton, no analysis code yet). **Pre-existing code: none.** All code in this repository is written from scratch during the
 Kiroween submission period. Demos use public open-source Java projects only.
 
 ---
@@ -80,6 +80,33 @@ and how many unresolved sites it flagged honestly. Results will be published wit
 - `fixtures/haunted-house` — a small synthetic app we write ourselves with known ground-truth edges
   (Lombok, parent beans, `getBean` by name, a reflection call, a string-keyed handler registry)
 
+## Pre-existing code and dependencies
+
+**Pre-existing code: none.** Everything in this repository was written from scratch during the submission period.
+Third-party libraries are used only as declared dependencies, never copied in. All are Apache-2.0, MIT or BSD
+compatible.
+
+| Where | Dependency | Why |
+|---|---|---|
+| all Java modules (test) | JUnit 5 (`junit-jupiter`, EPL-2.0), jqwik (EPL-2.0) | example and property-based tests |
+| `web/` | React, React DOM (MIT) | UI |
+| `web/` (build) | Vite, `@vitejs/plugin-react` (MIT), TypeScript (Apache-2.0), `@types/react*` (MIT) | static build |
+
+Planned, added by the task that first needs them (see [`tasks.md`](.kiro/specs/ghost-map-core/tasks.md)):
+jtreesitter (MIT), ASM (BSD-3), Byte Buddy (Apache-2.0), Jackson (Apache-2.0), picocli (Apache-2.0),
+MCP Java SDK (MIT), Cytoscape.js (MIT), fast-check (MIT).
+
+## Build
+
+Requires JDK 25 and Node 22+.
+
+```
+./gradlew check            # compile and test all Java modules
+cd web && npm ci && npm run build
+```
+
+CI (`.github/workflows/ci.yml`) runs both.
+
 ## Repository layout
 
 See [`.kiro/steering/structure.md`](.kiro/steering/structure.md). Specs live in
@@ -92,4 +119,4 @@ were used.
 
 ## License
 
-Apache-2.0 (proposed — see LICENSE once the repository is created).
+Apache-2.0. See [LICENSE](LICENSE).

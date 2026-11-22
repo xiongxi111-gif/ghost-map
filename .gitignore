@@ -16,6 +16,8 @@ web/dist/
 .DS_Store
 # Demo targets are fetched by script, never vendored
 bench/targets/
+# Probe workload output and target process logs are local-only
+bench/out/
 # Local-only (docs/kiro-logs is intentionally left untracked by the owner)
 docs/kiro-logs/
 # NOTE: /.kiro is committed and must never be listed here.

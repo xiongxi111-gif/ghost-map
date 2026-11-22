@@ -11,7 +11,10 @@ import java.lang.instrument.Instrumentation;
 import static net.bytebuddy.matcher.ElementMatchers.isAbstract;
 import static net.bytebuddy.matcher.ElementMatchers.isMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isNative;
+import static net.bytebuddy.matcher.ElementMatchers.nameContains;
+import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
+import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.none;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
@@ -79,7 +82,11 @@ public final class GhostMapAgent {
     }
 
     private static ElementMatcher.Junction<TypeDescription> alwaysExcluded() {
-        return nameStartsWith("dev.ghostmap.probe.")
+        return named("module-info")
+                .or(nameEndsWith(".package-info"))
+                .or(nameContains("$MockitoMock$"))
+                .or(nameContains("$auxiliary$"))
+                .or(nameStartsWith("dev.ghostmap.probe."))
                 .or(nameStartsWith("java."))
                 .or(nameStartsWith("jdk."))
                 .or(nameStartsWith("sun."))

@@ -6,7 +6,7 @@
 > (a tree-sitter parser, a JVM bytecode reader, a Spring wiring resolver, and a live JVM probe), stitched
 > together by one *join policy* and brought to life for agents through MCP.
 
-Status: Task 12 runtime probe complete; petclinic workloads and runtime join rules remain future tasks. **Pre-existing code: none.** All code in this repository is written from scratch during the
+Status: Task 13 pinned Petclinic probe workloads complete; runtime join rules remain a future task. **Pre-existing code: none.** All code in this repository was written from scratch during the
 Kiroween submission period. Demos use public open-source Java projects only.
 
 ---
@@ -165,6 +165,16 @@ probe never records arguments, return values, or request data. Advice obtains ca
 stack; `StackWalker` is used only if an instrumented entry has no shadow-stack caller. Byte Buddy is relocated inside
 the agent jar and is not required by the target application. Classes loaded by a child loader that delegates to the
 application/system loader are supported; a fully isolated parent-null loader cannot currently reach the probe runtime.
+
+Run both pinned public Petclinic test suites with the agent explicitly, outside default CI:
+
+```bash
+JAVA_HOME=/home/box/.local/jvm/temurin-25 bench/run-workloads.sh
+```
+
+The script verifies the pinned commits, builds the agent, passes it to each Maven Surefire fork with `-javaagent`,
+validates and summarizes the resulting JSONL, and keeps all raw output under gitignored `bench/out/`. See
+[`bench/workloads.md`](bench/workloads.md) for the recorded Task 13 commands, counts, and coverage limits.
 
 ## MCP server
 

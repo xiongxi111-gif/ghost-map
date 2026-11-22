@@ -48,7 +48,7 @@ Dates below are Beijing dates. Each task lists the requirements it satisfies.
 - [x] 12. `ghostmap-probe` agent (`--release 17`, Byte Buddy shaded): include/exclude filters, shadow stack,
   bounded map, shutdown flush to JSONL, dispatch-kind detection; never writes to target stdout
   - _Requirements: 4.1–4.4_
-- [ ] 13. Workload scripts: run petclinic test suites / scripted HTTP calls with the probe attached
+- [x] 13. Workload scripts: run petclinic test suites / scripted HTTP calls with the probe attached
 - [ ] 14. Join rules R06 Runtime floor and R08 Phantoms; blind-spot report
   - property: conservation of runtime pairs
   - _Requirements: 5.6, 6.1–6.3_

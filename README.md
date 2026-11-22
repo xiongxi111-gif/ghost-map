@@ -6,7 +6,7 @@
 > (a tree-sitter parser, a JVM bytecode reader, a Spring wiring resolver, and a live JVM probe), stitched
 > together by one *join policy* and brought to life for agents through MCP.
 
-Status: M2 wiring (XML/annotation analysis plus R05/R07 join rules complete; MCP remains Task 11). **Pre-existing code: none.** All code in this repository is written from scratch during the
+Status: M2 wiring and early MCP (`who_injects`) complete. **Pre-existing code: none.** All code in this repository is written from scratch during the
 Kiroween submission period. Demos use public open-source Java projects only.
 
 ---
@@ -91,14 +91,14 @@ Third-party libraries are used only as declared dependencies, never copied in. T
 | `ghostmap-core` | tree-sitter-ng + tree-sitter-java (MIT), ASM (BSD-3-Clause) | L1 Java parsing with bundled natives; L2 class/JAR reading without class loading |
 | `ghostmap-core` (test) | Lombok (MIT), Spring annotations (Apache-2.0), Jakarta Inject/Annotations (Apache-2.0) | compile self-contained generated-member and annotation-wiring bytecode samples |
 | `ghostmap-cli` | picocli (Apache-2.0) | validated commands, usage help, and process exit codes |
+| `ghostmap-mcp` | official MCP Java SDK (MIT) | JSON schemas, tool handling, and newline-delimited stdio transport |
 | `fixtures/haunted-house` | Spring Framework (Apache-2.0), Lombok (MIT) | synthetic wiring, proxy, JDBC, and generated-member target |
 | `fixtures/haunted-house` (test) | Spring Test (Apache-2.0), H2 (MPL-2.0/EPL-1.0), Jackson (Apache-2.0), JUnit 5 (EPL-2.0) | executable fixture and ground-truth validation |
 | `web/` | React, React DOM (MIT) | UI |
 | `web/` (build) | Vite, `@vitejs/plugin-react` (MIT), TypeScript (Apache-2.0), `@types/react*` (MIT) | static build |
 
 Planned, added by the task that first needs them (see [`tasks.md`](.kiro/specs/ghost-map-core/tasks.md)):
-Byte Buddy (Apache-2.0),
-MCP Java SDK (MIT), Cytoscape.js (MIT), fast-check (MIT).
+Byte Buddy (Apache-2.0), Cytoscape.js (MIT), fast-check (MIT).
 
 L1 uses the permitted `bonede/tree-sitter-ng` fallback behind `SourceLayer`. The official jtreesitter artifact
 requires separately installed native tree-sitter and Java grammar libraries; it does not provide a self-contained
@@ -141,6 +141,22 @@ Build/install the reactor artifacts once, then run the configured picocli main c
 
 Omit `--classes` for an AST-only snapshot. `--classes` accepts comma-separated class directories or JARs.
 `scripts/regen-snapshot.sh` wraps the same command and explicitly skips the not-yet-implemented benchmark/diff steps.
+
+## MCP server
+
+Build the runnable jar, then start the read-only stdio server with one snapshot:
+
+```bash
+./mvnw -q -pl ghostmap-mcp -am package
+java -jar ghostmap-mcp/target/ghostmap-mcp-all.jar \
+  --snapshot snapshots/haunted-house-static.ghostmap.json
+```
+
+The Task 11 server advertises only `who_injects`. Its `beanOrType` input accepts canonical `b:` or `t:` ids,
+bean names, and unique type simple or binary names. Results include the snapshot id, code version, wiring-edge
+provenance, confidence, join rule ids, locatable evidence, and XML parent inheritance. Missing and ambiguous
+symbols return structured `NOT_FOUND` and `AMBIGUOUS` tool errors. The committed M1 snapshots remain unchanged;
+a snapshot must contain L3 `BINDS` and `INJECTS` edges for the query to return wiring chains.
 
 ## Repository layout
 

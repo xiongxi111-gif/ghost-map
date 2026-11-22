@@ -41,7 +41,7 @@ Dates below are Beijing dates. Each task lists the requirements it satisfies.
 - [x] 10. Join rules R05 Wiring narrowing and R07 Dynamic sites (constant-key resolution via bean/registry index)
   - property: every dynamic site yields a resolved or UNRESOLVED edge
   - _Requirements: 5.4, 5.5_
-- [ ] 11. MCP tool `who_injects` early (useful to dogfood in Kiro while building the rest)
+- [x] 11. MCP tool `who_injects` early (useful to dogfood in Kiro while building the rest)
   - _Requirements: 8.1–8.3_
 
 ## M3 — Runtime layer L4 (Nov 25–27)

@@ -6,7 +6,7 @@
 > (a tree-sitter parser, a JVM bytecode reader, a Spring wiring resolver, and a live JVM probe), stitched
 > together by one *join policy* and brought to life for agents through MCP.
 
-Status: M1 static analysis complete (L1 source, L2 bytecode, static join, and versioned index snapshots). **Pre-existing code: none.** All code in this repository is written from scratch during the
+Status: M2 wiring (secure Spring XML analysis complete; annotation wiring and R05/R07 not started). **Pre-existing code: none.** All code in this repository is written from scratch during the
 Kiroween submission period. Demos use public open-source Java projects only.
 
 ---
@@ -109,6 +109,11 @@ The fixed-order static join runs with `new JoinPolicy().join(sourceFacts, byteco
 `JoinedGraph`, the documented pre-snapshot form containing canonical model nodes, scored call edges, unresolved
 provisional nodes, and diagnostics. The `index` command adds target version metadata and serialises it as
 `ghostmap.snapshot/v1`.
+
+Run XML wiring independently with
+`new WiringLayer().analyse(LayerInput.forResourceRoots(resourceRoot))`. The layer uses secure JDK StAX and never
+boots Spring or fetches external XML resources. XML wiring is not included in the default `index` command yet, so
+the committed M1 snapshots remain unchanged.
 
 ## Build
 

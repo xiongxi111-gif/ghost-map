@@ -6,28 +6,44 @@ import java.util.List;
 import java.util.Optional;
 
 /** Filesystem roots supplied to one or more analysis layers. */
-public record LayerInput(Optional<Path> sourceRoot, List<Path> classRoots) {
+public record LayerInput(Optional<Path> sourceRoot, List<Path> classRoots, List<Path> resourceRoots) {
     public LayerInput(Path sourceRoot) {
-        this(Optional.of(normalize(sourceRoot)), List.of());
+        this(Optional.of(normalize(sourceRoot)), List.of(), List.of());
+    }
+
+    public LayerInput(Optional<Path> sourceRoot, List<Path> classRoots) {
+        this(sourceRoot, classRoots, List.of());
     }
 
     public LayerInput {
-        if (sourceRoot == null || classRoots == null) {
+        if (sourceRoot == null || classRoots == null || resourceRoots == null) {
             throw new NullPointerException("layer input fields must not be null");
         }
         sourceRoot = sourceRoot.map(LayerInput::normalize);
         classRoots = classRoots.stream().map(LayerInput::normalize).toList();
+        resourceRoots = resourceRoots.stream().map(LayerInput::normalize).toList();
     }
 
     public static LayerInput forClassRoots(Path... classRoots) {
         if (classRoots == null) {
             throw new NullPointerException("classRoots");
         }
-        return new LayerInput(Optional.empty(), Arrays.asList(classRoots));
+        return new LayerInput(Optional.empty(), Arrays.asList(classRoots), List.of());
     }
 
     public static LayerInput forClassRoots(List<Path> classRoots) {
-        return new LayerInput(Optional.empty(), classRoots);
+        return new LayerInput(Optional.empty(), classRoots, List.of());
+    }
+
+    public static LayerInput forResourceRoots(Path... resourceRoots) {
+        if (resourceRoots == null) {
+            throw new NullPointerException("resourceRoots");
+        }
+        return new LayerInput(Optional.empty(), List.of(), Arrays.asList(resourceRoots));
+    }
+
+    public static LayerInput forResourceRoots(List<Path> resourceRoots) {
+        return new LayerInput(Optional.empty(), List.of(), resourceRoots);
     }
 
     public Path requireSourceRoot() {

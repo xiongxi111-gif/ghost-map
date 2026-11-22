@@ -33,7 +33,7 @@ Dates below are Beijing dates. Each task lists the requirements it satisfies.
   - **Checkpoint:** AST-only vs AST+bytecode diff visible on the fixture.
 
 ## M2 — Wiring layer L3 + dynamic sites (Nov 21–24)
-- [ ] 8. XML wiring: beans, aliases, `import`, `ref`/`property`/`constructor-arg`, inner beans, `parent` inheritance
+- [x] 8. XML wiring: beans, aliases, `import`, `ref`/`property`/`constructor-arg`, inner beans, `parent` inheritance
   - _Requirements: 3.1–3.3, 3.6_
 - [ ] 9. Annotation wiring: stereotypes, `@Bean` methods, `@Autowired`/`@Inject`/`@Resource`/constructor injection,
   `@Qualifier`/`@Primary`; UNRESOLVED on 0 or >1 candidates

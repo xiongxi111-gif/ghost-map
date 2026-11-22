@@ -26,7 +26,7 @@ Dates below are Beijing dates. Each task lists the requirements it satisfies.
 - [x] 5. L2 BytecodeLayer with ASM: members, `invoke*` edges with line numbers, hierarchy, annotations, generated flags,
   dynamic-site detection
   - _Requirements: 2.1–2.5_
-- [ ] 6. Join rules R01 Identity, R02 Call match, R03 Generated members, R04 Virtual expansion, R09 Conflicts
+- [x] 6. Join rules R01 Identity, R02 Call match, R03 Generated members, R04 Virtual expansion, R09 Conflicts
   - one jqwik `*Properties` class per rule
   - _Requirements: 5.1–5.4, 5.7, 5.8_
 - [ ] 7. CLI `ghostmap index --src --classes --out` producing a snapshot for haunted-house and both petclinics

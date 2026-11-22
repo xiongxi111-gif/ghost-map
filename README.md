@@ -6,7 +6,7 @@
 > (a tree-sitter parser, a JVM bytecode reader, a Spring wiring resolver, and a live JVM probe), stitched
 > together by one *join policy* and brought to life for agents through MCP.
 
-Status: M1 static analysis (L1 source and L2 bytecode layers complete; join and later layers not started). **Pre-existing code: none.** All code in this repository is written from scratch during the
+Status: M1 static analysis (L1 source, L2 bytecode, and Task 6 static join rules complete; later layers not started). **Pre-existing code: none.** All code in this repository is written from scratch during the
 Kiroween submission period. Demos use public open-source Java projects only.
 
 ---
@@ -103,6 +103,10 @@ L1 uses the permitted `bonede/tree-sitter-ng` fallback behind `SourceLayer`. The
 requires separately installed native tree-sitter and Java grammar libraries; it does not provide a self-contained
 Maven/CI runtime. tree-sitter-ng packages those native libraries for the supported CI platforms, avoiding an
 undeclared system installation.
+
+The fixed-order static join runs with `new JoinPolicy().join(sourceFacts, bytecodeFacts)`. It returns a
+`JoinedGraph`, the documented pre-snapshot form containing canonical model nodes, scored call edges, unresolved
+provisional nodes, and diagnostics. Task 7 will add repository version metadata and serialise this into a snapshot.
 
 ## Build
 

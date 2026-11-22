@@ -14,11 +14,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-final class TestCompiler {
+public final class TestCompiler {
     private TestCompiler() {
     }
 
-    static Path compile(Path workspace, Map<String, String> sources, boolean debug) throws IOException {
+    public static Path compile(Path workspace, Map<String, String> sources, boolean debug) throws IOException {
         Path sourceRoot = Files.createDirectories(workspace.resolve("src"));
         Path classes = Files.createDirectories(workspace.resolve("classes"));
         List<Path> sourceFiles = new ArrayList<>();

@@ -6,7 +6,7 @@
 > (a tree-sitter parser, a JVM bytecode reader, a Spring wiring resolver, and a live JVM probe), stitched
 > together by one *join policy* and brought to life for agents through MCP.
 
-Status: M0 foundation (Maven build and graph model complete; analysis layers not started). **Pre-existing code: none.** All code in this repository is written from scratch during the
+Status: M0 foundation complete (Maven build, graph model, and synthetic fixture; analysis layers not started). **Pre-existing code: none.** All code in this repository is written from scratch during the
 Kiroween submission period. Demos use public open-source Java projects only.
 
 ---
@@ -83,17 +83,18 @@ and how many unresolved sites it flagged honestly. Results will be published wit
 ## Pre-existing code and dependencies
 
 **Pre-existing code: none.** Everything in this repository was written from scratch during the submission period.
-Third-party libraries are used only as declared dependencies, never copied in. All are Apache-2.0, MIT or BSD
-compatible.
+Third-party libraries are used only as declared dependencies, never copied in. Their licences are listed below.
 
 | Where | Dependency | Why |
 |---|---|---|
 | all Java modules (test) | JUnit 5 (`junit-jupiter`, EPL-2.0), jqwik (EPL-2.0) | example and property-based tests |
+| `fixtures/haunted-house` | Spring Framework (Apache-2.0), Lombok (MIT) | synthetic wiring, proxy, JDBC, and generated-member target |
+| `fixtures/haunted-house` (test) | Spring Test (Apache-2.0), H2 (MPL-2.0/EPL-1.0), Jackson (Apache-2.0), JUnit 5 (EPL-2.0) | executable fixture and ground-truth validation |
 | `web/` | React, React DOM (MIT) | UI |
 | `web/` (build) | Vite, `@vitejs/plugin-react` (MIT), TypeScript (Apache-2.0), `@types/react*` (MIT) | static build |
 
 Planned, added by the task that first needs them (see [`tasks.md`](.kiro/specs/ghost-map-core/tasks.md)):
-jtreesitter (MIT), ASM (BSD-3), Byte Buddy (Apache-2.0), Jackson (Apache-2.0), picocli (Apache-2.0),
+jtreesitter (MIT), ASM (BSD-3), Byte Buddy (Apache-2.0), picocli (Apache-2.0),
 MCP Java SDK (MIT), Cytoscape.js (MIT), fast-check (MIT).
 
 ## Build
@@ -101,11 +102,12 @@ MCP Java SDK (MIT), Cytoscape.js (MIT), fast-check (MIT).
 Requires JDK 25 and Node 22+.
 
 ```
-./mvnw -B verify           # compile and test all Java modules
+./mvnw -B verify                                      # analysis engine modules
+./mvnw -B -f fixtures/haunted-house/pom.xml verify  # standalone synthetic fixture
 cd web && npm ci && npm run build
 ```
 
-CI (`.github/workflows/ci.yml`) runs both.
+CI (`.github/workflows/ci.yml`) runs all three.
 
 ## Repository layout
 

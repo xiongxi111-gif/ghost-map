@@ -101,7 +101,7 @@ MCP Java SDK (MIT), Cytoscape.js (MIT), fast-check (MIT).
 Requires JDK 25 and Node 22+.
 
 ```
-./gradlew check            # compile and test all Java modules
+./mvnw -B verify           # compile and test all Java modules
 cd web && npm ci && npm run build
 ```
 

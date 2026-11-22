@@ -5,7 +5,7 @@ Kiro credit request deadline: Tue Dec 1, 12:00 PM PT — request in week 1, not 
 Dates below are Beijing dates. Each task lists the requirements it satisfies.
 
 ## M0 — Foundation (Nov 14–16)
-- [ ] 1. Create public repo, Apache-2.0 LICENSE, Gradle multi-module skeleton, CI (`./gradlew check`, web build)
+- [x] 1. Create public repo, Apache-2.0 LICENSE, Maven multi-module skeleton, CI (`./mvnw -B verify`, web build)
   - Commit `/.kiro` (steering, specs, hooks, settings); verify it is not gitignored
   - Record "pre-existing code: none" in README; declare dependencies
   - _Requirements: 11.1, 11.2_

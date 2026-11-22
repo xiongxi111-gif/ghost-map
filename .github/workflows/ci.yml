@@ -17,8 +17,8 @@ jobs:
         with:
           distribution: temurin
           java-version: "25"
-      - uses: gradle/actions/setup-gradle@v4
-      - run: ./gradlew check --console=plain
+          cache: maven
+      - run: ./mvnw -B verify
 
   web:
     runs-on: ubuntu-latest

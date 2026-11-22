@@ -8,7 +8,7 @@
       "matcher": "^(ghostmap-model|ghostmap-core/src/main/java/dev/ghostmap/(join|cards))/.*\\.java$",
       "action": {
         "type": "command",
-        "command": "./gradlew -q :ghostmap-model:test :ghostmap-core:test --tests '*Properties' --console=plain"
+        "command": "./mvnw -q -pl ghostmap-model,ghostmap-core -am test -Dtest=*Properties"
       },
       "timeout": 300
     }

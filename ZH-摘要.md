@@ -15,7 +15,7 @@
 ## 推荐技术栈（及理由）
 | 部分 | 选择 | 理由 |
 |---|---|---|
-| 核心引擎、CLI、MCP | Java 25 (LTS) + Gradle | 字节码（ASM）和 Spring 解析在 JVM 上最自然。官方 tree-sitter Java 绑定需要 JDK 23+，有官方 MCP Java SDK。全栈一种语言，评委看技术实现也更连贯 |
+| 核心引擎、CLI、MCP | Java 25 (LTS) + Maven | 字节码（ASM）和 Spring 解析在 JVM 上最自然。官方 tree-sitter Java 绑定需要 JDK 23+，有官方 MCP Java SDK。全栈一种语言，评委看技术实现也更连贯 |
 | 运行时探针 | Java agent，以 `--release 17` 编译，Byte Buddy | 能挂到老版本 JDK 的目标应用上。JFR 只做可选补充，因为它是采样，记不全调用边 |
 | Spring 解析 | 自写：StAX 解析 XML，ASM 读注解 | 不启动目标应用，只读分析，安全可控 |
 | Web UI | TypeScript + Vite + React + Cytoscape.js，部署 GitHub Pages 静态站 | 零后端，最稳定，满足“working app URL” |

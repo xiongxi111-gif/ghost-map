@@ -1,6 +1,8 @@
 # Build output
 .gradle/
+.m2/
 build/
+target/
 out/
 *.class
 # Web

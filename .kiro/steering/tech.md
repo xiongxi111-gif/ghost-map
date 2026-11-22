@@ -7,7 +7,7 @@ inclusion: always
 - **Java 25 (LTS)** for `ghostmap-core`, `ghostmap-cli`, `ghostmap-mcp`. Needed by the official tree-sitter Java
   bindings (`io.github.tree-sitter:jtreesitter`, FFM API, JDK 23+). If native bindings cause trouble on a
   platform, fall back to `bonede/tree-sitter-ng` (JDK 8+) behind the same `SourceLayer` interface.
-- **Build:** Gradle (Kotlin DSL), multi-module. Reproducible builds; `./gradlew check` must pass before commit.
+- **Build:** Maven, multi-module. Reproducible builds; `./mvnw -B verify` must pass before commit.
 - **L1 Source:** tree-sitter + tree-sitter-java grammar; queries in `.scm` files under `resources/queries/`.
 - **L2 Bytecode:** **ASM 9.x** (`org.ow2.asm:asm`, `asm-tree`). Read class files/JARs only; never load classes.
 - **L3 Wiring:** our own resolver. XML via StAX (no Spring on the classpath); annotations read from bytecode

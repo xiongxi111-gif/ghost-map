@@ -45,7 +45,7 @@ Dates below are Beijing dates. Each task lists the requirements it satisfies.
   - _Requirements: 8.1–8.3_
 
 ## M3 — Runtime layer L4 (Nov 25–27)
-- [ ] 12. `ghostmap-probe` agent (`--release 17`, Byte Buddy shaded): include/exclude filters, shadow stack,
+- [x] 12. `ghostmap-probe` agent (`--release 17`, Byte Buddy shaded): include/exclude filters, shadow stack,
   bounded map, shutdown flush to JSONL, dispatch-kind detection; never writes to target stdout
   - _Requirements: 4.1–4.4_
 - [ ] 13. Workload scripts: run petclinic test suites / scripted HTTP calls with the probe attached

@@ -6,7 +6,7 @@
 > (a tree-sitter parser, a JVM bytecode reader, a Spring wiring resolver, and a live JVM probe), stitched
 > together by one *join policy* and brought to life for agents through MCP.
 
-Status: M2 wiring and early MCP (`who_injects`) complete. **Pre-existing code: none.** All code in this repository is written from scratch during the
+Status: Task 12 runtime probe complete; petclinic workloads and runtime join rules remain future tasks. **Pre-existing code: none.** All code in this repository is written from scratch during the
 Kiroween submission period. Demos use public open-source Java projects only.
 
 ---
@@ -91,6 +91,7 @@ Third-party libraries are used only as declared dependencies, never copied in. T
 | `ghostmap-core` | tree-sitter-ng + tree-sitter-java (MIT), ASM (BSD-3-Clause) | L1 Java parsing with bundled natives; L2 class/JAR reading without class loading |
 | `ghostmap-core` (test) | Lombok (MIT), Spring annotations (Apache-2.0), Jakarta Inject/Annotations (Apache-2.0) | compile self-contained generated-member and annotation-wiring bytecode samples |
 | `ghostmap-cli` | picocli (Apache-2.0) | validated commands, usage help, and process exit codes |
+| `ghostmap-probe` | Byte Buddy 1.18.17 (Apache-2.0) | real JVM method instrumentation, shaded into the Java agent jar |
 | `ghostmap-mcp` | official MCP Java SDK (MIT) | JSON schemas, tool handling, and newline-delimited stdio transport |
 | `fixtures/haunted-house` | Spring Framework (Apache-2.0), Lombok (MIT) | synthetic wiring, proxy, JDBC, and generated-member target |
 | `fixtures/haunted-house` (test) | Spring Test (Apache-2.0), H2 (MPL-2.0/EPL-1.0), Jackson (Apache-2.0), JUnit 5 (EPL-2.0) | executable fixture and ground-truth validation |
@@ -98,7 +99,7 @@ Third-party libraries are used only as declared dependencies, never copied in. T
 | `web/` (build) | Vite, `@vitejs/plugin-react` (MIT), TypeScript (Apache-2.0), `@types/react*` (MIT) | static build |
 
 Planned, added by the task that first needs them (see [`tasks.md`](.kiro/specs/ghost-map-core/tasks.md)):
-Byte Buddy (Apache-2.0), Cytoscape.js (MIT), fast-check (MIT).
+Cytoscape.js (MIT), fast-check (MIT).
 
 L1 uses the permitted `bonede/tree-sitter-ng` fallback behind `SourceLayer`. The official jtreesitter artifact
 requires separately installed native tree-sitter and Java grammar libraries; it does not provide a self-contained
@@ -141,6 +142,29 @@ Build/install the reactor artifacts once, then run the configured picocli main c
 
 Omit `--classes` for an AST-only snapshot. `--classes` accepts comma-separated class directories or JARs.
 `scripts/regen-snapshot.sh` wraps the same command and explicitly skips the not-yet-implemented benchmark/diff steps.
+
+## Runtime probe Java agent
+
+Build the shaded Java 17 agent and attach it to a separate target JVM:
+
+```bash
+./mvnw -q -pl ghostmap-probe -am package
+java -javaagent:ghostmap-probe/target/ghostmap-probe-agent.jar=include=com.example.app,exclude=com.example.app.generated,out=runtime-edges.jsonl,edgeLimit=100000,trigger=ghostmap.dump,log=ghostmap-probe.log \
+  -jar target-app.jar
+```
+
+Package lists in `include` and `exclude` use semicolons when more than one prefix is needed. Optional settings are
+`out` (default `runtime-edges.jsonl`), `edgeLimit` (default 100000), `trigger`, `triggerPollMillis` (default 250),
+`log` (default `ghostmap-probe.log`), and `runId` (default random UUID). Creating the configured trigger file appends
+a dump and consumes the file; JVM shutdown appends a final dump. Probe diagnostics go only to the configured log.
+
+Each JSONL line is one complete `ghostmap.runtime/v1` aggregate with `runId`, `startedAt`, `endedAt`, dump reason,
+include/exclude filters, edge limit, dropped-event count, and sorted caller→callee pairs. Each method identity contains
+only binary owner, method name, and JVM descriptor; each pair contains hits and a conservative dispatch kind. The
+probe never records arguments, return values, or request data. Advice obtains callers from a thread-local shadow
+stack; `StackWalker` is used only if an instrumented entry has no shadow-stack caller. Byte Buddy is relocated inside
+the agent jar and is not required by the target application. Classes loaded by a child loader that delegates to the
+application/system loader are supported; a fully isolated parent-null loader cannot currently reach the probe runtime.
 
 ## MCP server
 

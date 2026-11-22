@@ -57,9 +57,6 @@ public final class WiringLayer implements Layer {
         }
         List<Diagnostic> diagnostics = new ArrayList<>();
         List<Path> roots = validatedRoots(input.resourceRoots(), diagnostics);
-        if (roots.isEmpty()) {
-            return facts(List.of(), List.of(), diagnostics);
-        }
         List<Path> xmlFiles = discoverXml(roots, diagnostics);
         Map<Path, ParsedDocument> documents = new LinkedHashMap<>();
         XmlBeanDocumentParser parser = new XmlBeanDocumentParser(diagnostics::add);
@@ -80,17 +77,37 @@ public final class WiringLayer implements Layer {
             resolveEffective(bean, registry, effective, new LinkedHashSet<>(), diagnostics);
         }
 
+        AnnotationWiringScanner.ScanResult annotationScan = new AnnotationWiringScanner(diagnostics)
+                .scan(input.classRoots());
+        validateImportResources(annotationScan.importResources(), roots, documents.values(), diagnostics);
+        Map<BeanId, Set<String>> aliases = registry.resolvedAliases();
+        List<WiringBeanRegistration> registrations = new ArrayList<>();
+        for (RawBean bean : uniqueBeans) {
+            EffectiveBean resolved = effective.get(bean.beanId());
+            xmlRegistration(bean, resolved, aliases.getOrDefault(bean.beanId(), Set.of()))
+                    .ifPresent(registrations::add);
+        }
+        registrations.addAll(annotationScan.registrations());
+        UnifiedBeanRegistry unified = new UnifiedBeanRegistry(registrations, annotationScan.hierarchy(), diagnostics);
+
         List<FactNode> nodes = new ArrayList<>();
         List<EdgeFact> edges = new ArrayList<>();
-        Map<BeanId, Set<String>> aliases = registry.resolvedAliases();
         for (RawBean bean : uniqueBeans) {
             EffectiveBean resolved = effective.get(bean.beanId());
             nodes.add(beanNode(bean, resolved, aliases.getOrDefault(bean.beanId(), Set.of())));
             if (!bean.abstractBean()) {
                 emitBind(bean, resolved, edges, diagnostics);
-                emitInjections(bean, resolved, registry, edges, diagnostics);
+                emitInjections(bean, resolved, unified, edges, diagnostics);
             }
         }
+        nodes.addAll(annotationScan.nodes());
+        annotationScan.binds().stream().filter(bind ->
+                bind.from() instanceof SymbolId.Canonical canonical
+                        && canonical.id() instanceof BeanId beanId
+                        && unified.byId(beanId).isPresent())
+                .forEach(edges::add);
+        emitAnnotationInjections(annotationScan.injectionSites(), unified, edges, diagnostics);
+        nodes = distinctNodes(nodes, diagnostics);
         nodes.sort(Comparator.comparing(node -> node.id().value()));
         edges.sort(Comparator.comparing(edge -> edge.from().value() + '|' + edge.toString()));
         diagnostics.sort(Comparator.comparing((Diagnostic diagnostic) -> diagnostic.code().name())
@@ -311,6 +328,92 @@ public final class WiringLayer implements Layer {
         return result;
     }
 
+    private static void validateImportResources(
+            List<AnnotationWiringScanner.ImportResourceRequest> requests,
+            List<Path> roots, java.util.Collection<ParsedDocument> documents,
+            List<Diagnostic> diagnostics) {
+        Set<Path> parsed = documents.stream().map(ParsedDocument::path)
+                .map(path -> path.toAbsolutePath().normalize()).collect(java.util.stream.Collectors.toSet());
+        for (AnnotationWiringScanner.ImportResourceRequest request : requests) {
+            String resource = request.resource();
+            if (remoteOrOutside(resource)) {
+                diagnostics.add(diagnostic(DiagnosticCode.XML_IMPORT_OUTSIDE_ROOT, request.classFile(),
+                        request.line(), "remote or absolute @ImportResource is forbidden"));
+                continue;
+            }
+            String local = resource.startsWith("classpath:")
+                    ? resource.substring("classpath:".length()) : resource;
+            while (local.startsWith("/")) {
+                local = local.substring(1);
+            }
+            boolean present = false;
+            for (Path root : roots) {
+                Path candidate = root.resolve(local).normalize();
+                if (insideRoots(candidate, roots) && parsed.contains(candidate.toAbsolutePath().normalize())) {
+                    present = true;
+                    break;
+                }
+            }
+            if (!present) {
+                diagnostics.add(diagnostic(DiagnosticCode.XML_IMPORT_MISSING, request.classFile(), request.line(),
+                        "local @ImportResource was not found in analysed resource roots: " + resource));
+            }
+        }
+    }
+
+    private static Optional<WiringBeanRegistration> xmlRegistration(RawBean bean, EffectiveBean effective,
+                                                                     Set<String> aliases) {
+        if (bean.abstractBean() || effective.className().isBlank()
+                || effective.className().contains("${") || effective.className().contains("#{")) {
+            return Optional.empty();
+        }
+        try {
+            TypeId type = new TypeId(effective.className());
+            Set<String> names = new LinkedHashSet<>(aliases);
+            names.add(bean.beanId().beanId());
+            return Optional.of(new WiringBeanRegistration(bean.beanId(), type, names, names, false));
+        } catch (IllegalArgumentException exception) {
+            return Optional.empty();
+        }
+    }
+
+    private static List<FactNode> distinctNodes(List<FactNode> candidates, List<Diagnostic> diagnostics) {
+        Map<String, FactNode> nodes = new LinkedHashMap<>();
+        for (FactNode node : candidates.stream().sorted(Comparator.comparing(fact -> fact.id().value())).toList()) {
+            FactNode previous = nodes.putIfAbsent(node.id().value(), node);
+            if (previous != null) {
+                String file = node.sourceLocation().map(SourceLocation::file)
+                        .orElseGet(() -> node.attrs().get("classFile") instanceof StringValue value
+                                ? value.value() : "annotations");
+                diagnostics.add(diagnostic(DiagnosticCode.ANNOTATION_DUPLICATE_BEAN, file, 1,
+                        "duplicate annotation bean id: " + node.id().value()));
+            }
+        }
+        return new ArrayList<>(nodes.values());
+    }
+
+    private static void emitAnnotationInjections(List<AnnotationInjectionSite> sites,
+                                                  UnifiedBeanRegistry registry, List<EdgeFact> edges,
+                                                  List<Diagnostic> diagnostics) {
+        for (AnnotationInjectionSite site : sites) {
+            WiringResolution resolution = registry.resolve(site);
+            if (resolution.target().isPresent()) {
+                BeanId target = resolution.target().orElseThrow();
+                Evidence.Wiring evidence = new Evidence.Wiring(site.classFile(), site.line(), target);
+                edges.add(new WiringInjectionFact(canonical(site.ownerBean()), canonical(target), site.point(),
+                        evidence, List.of()));
+            } else {
+                edges.add(new UnresolvedWiringFact(canonical(site.ownerBean()), site.point(),
+                        site.requiredType().value(), site.resourceName().or(() -> site.qualifier()),
+                        resolution.candidates(), site.classFile(), site.line()));
+                diagnostics.add(diagnostic(DiagnosticCode.WIRING_UNRESOLVED_INJECTION,
+                        site.classFile(), site.line(), "unresolved injection of " + site.requiredType().value()
+                                + " into " + site.ownerBean().value() + "; candidates="
+                                + resolution.candidates().stream().map(BeanId::value).toList()));
+            }
+        }
+    }
+
     private static FactNode beanNode(RawBean bean, EffectiveBean effective, Set<String> aliases) {
         Map<String, JsonValue> attrs = new LinkedHashMap<>();
         attrs.put("abstract", new BooleanValue(bean.abstractBean()));
@@ -358,23 +461,27 @@ public final class WiringLayer implements Layer {
         }
     }
 
-    private static void emitInjections(RawBean bean, EffectiveBean effective, BeanRegistry registry,
-                                       List<EdgeFact> edges, List<Diagnostic> diagnostics) {
+    private static void emitInjections(RawBean bean, EffectiveBean effective,
+                                       UnifiedBeanRegistry unified, List<EdgeFact> edges,
+                                       List<Diagnostic> diagnostics) {
         for (EffectiveInjection injection : effective.references().values()) {
             RawInjection raw = injection.raw();
             if (!hasReference(injection)) {
                 continue;
             }
-            Optional<RawBean> target = raw.directTarget().flatMap(registry::byId)
-                    .or(() -> raw.referenceName().flatMap(name -> registry.resolve(name, new LinkedHashSet<>())));
-            if (target.isEmpty()) {
+            List<BeanId> candidates = raw.directTarget()
+                    .map(target -> unified.byId(target).stream().toList())
+                    .orElseGet(() -> raw.referenceName().map(unified::byName).orElse(List.of()));
+            if (candidates.size() != 1) {
                 String reference = raw.directTarget().map(BeanId::value).orElseGet(() ->
                         raw.referenceName().orElse("<missing>"));
                 diagnostics.add(diagnostic(DiagnosticCode.XML_REFERENCE_MISSING, raw.file(), raw.line(),
                         "bean reference not found or ambiguous: " + reference));
+                edges.add(new UnresolvedWiringFact(canonical(bean.beanId()), raw.point(), "bean-name",
+                        Optional.of(reference), candidates, raw.file(), raw.line()));
                 continue;
             }
-            BeanId targetId = target.orElseThrow().beanId();
+            BeanId targetId = candidates.get(0);
             Evidence.Wiring evidence = new Evidence.Wiring(raw.file(), raw.line(), targetId);
             edges.add(new WiringInjectionFact(canonical(bean.beanId()), canonical(targetId), raw.point(), evidence,
                     injection.inheritanceChain()));
@@ -483,6 +590,129 @@ public final class WiringLayer implements Layer {
             List<BeanId> result = new ArrayList<>(values);
             result.add(value);
             return List.copyOf(result);
+        }
+    }
+
+    private record WiringResolution(Optional<BeanId> target, List<BeanId> candidates) {
+        private WiringResolution {
+            candidates = List.copyOf(candidates);
+        }
+    }
+
+    private static final class UnifiedBeanRegistry {
+        private final Map<BeanId, WiringBeanRegistration> byId = new LinkedHashMap<>();
+        private final Map<String, List<WiringBeanRegistration>> byName = new LinkedHashMap<>();
+        private final Set<BeanId> conflictingIds = new HashSet<>();
+        private final Map<String, Set<String>> hierarchy;
+
+        private UnifiedBeanRegistry(List<WiringBeanRegistration> registrations,
+                                    Map<String, Set<String>> hierarchy,
+                                    List<Diagnostic> diagnostics) {
+            this.hierarchy = Map.copyOf(hierarchy);
+            for (WiringBeanRegistration registration : registrations.stream()
+                    .sorted(Comparator.comparing(candidate -> candidate.beanId().value())).toList()) {
+                if (conflictingIds.contains(registration.beanId())) {
+                    continue;
+                }
+                WiringBeanRegistration previous = byId.putIfAbsent(registration.beanId(), registration);
+                if (previous != null && !previous.equals(registration)) {
+                    conflictingIds.add(registration.beanId());
+                    byId.remove(registration.beanId());
+                    byName.values().forEach(values -> values.removeIf(candidate ->
+                            candidate.beanId().equals(registration.beanId())));
+                    diagnostics.add(diagnostic(DiagnosticCode.ANNOTATION_DUPLICATE_BEAN,
+                            "annotations", 1, "duplicate bean id: " + registration.beanId().value()));
+                    continue;
+                }
+                if (previous == null) {
+                    registration.names().forEach(name -> byName.computeIfAbsent(name,
+                            ignored -> new ArrayList<>()).add(registration));
+                }
+            }
+            byName.forEach((name, candidates) -> {
+                long distinct = candidates.stream().map(WiringBeanRegistration::beanId).distinct().count();
+                if (distinct > 1) {
+                    diagnostics.add(diagnostic(DiagnosticCode.ANNOTATION_DUPLICATE_BEAN,
+                            "annotations", 1, "conflicting bean name across XML and annotations: " + name));
+                }
+            });
+        }
+
+        Optional<BeanId> byId(BeanId id) {
+            return Optional.ofNullable(byId.get(id)).map(WiringBeanRegistration::beanId);
+        }
+
+        List<BeanId> byName(String name) {
+            return registrationsByName(name).stream().map(WiringBeanRegistration::beanId).distinct()
+                    .sorted(Comparator.comparing(BeanId::value)).toList();
+        }
+
+        WiringResolution resolve(AnnotationInjectionSite site) {
+            if (site.resourceName().isPresent()) {
+                List<WiringBeanRegistration> named = registrationsByName(site.resourceName().orElseThrow());
+                List<WiringBeanRegistration> compatible = named.stream()
+                        .filter(candidate -> isAssignable(candidate.type(), site.requiredType())).toList();
+                if (compatible.size() == 1) {
+                    BeanId target = compatible.get(0).beanId();
+                    return new WiringResolution(Optional.of(target), List.of(target));
+                }
+                if (!named.isEmpty() || site.explicitResourceName()) {
+                    return unresolved(compatible.isEmpty() ? named : compatible);
+                }
+            }
+
+            List<WiringBeanRegistration> candidates = byId.values().stream()
+                    .filter(candidate -> isAssignable(candidate.type(), site.requiredType())).toList();
+            if (site.qualifier().isPresent()) {
+                String qualifier = site.qualifier().orElseThrow();
+                candidates = candidates.stream().filter(candidate -> candidate.names().contains(qualifier)
+                        || candidate.qualifiers().contains(qualifier)).toList();
+            }
+            if (candidates.size() == 1) {
+                BeanId target = candidates.get(0).beanId();
+                return new WiringResolution(Optional.of(target), List.of(target));
+            }
+            if (candidates.size() > 1) {
+                List<WiringBeanRegistration> primary = candidates.stream()
+                        .filter(WiringBeanRegistration::primary).toList();
+                if (primary.size() == 1) {
+                    BeanId target = primary.get(0).beanId();
+                    return new WiringResolution(Optional.of(target), List.of(target));
+                }
+            }
+            return unresolved(candidates);
+        }
+
+        private WiringResolution unresolved(List<WiringBeanRegistration> candidates) {
+            List<BeanId> ids = candidates.stream().map(WiringBeanRegistration::beanId).distinct()
+                    .sorted(Comparator.comparing(BeanId::value)).toList();
+            return new WiringResolution(Optional.empty(), ids);
+        }
+
+        private List<WiringBeanRegistration> registrationsByName(String name) {
+            return byName.getOrDefault(name, List.of()).stream().distinct().toList();
+        }
+
+        private boolean isAssignable(TypeId candidate, TypeId required) {
+            if (candidate.equals(required)) {
+                return true;
+            }
+            Set<String> visited = new HashSet<>();
+            List<String> pending = new ArrayList<>();
+            pending.add(candidate.binaryName());
+            while (!pending.isEmpty()) {
+                String current = pending.remove(pending.size() - 1);
+                if (!visited.add(current)) {
+                    continue;
+                }
+                for (String parent : hierarchy.getOrDefault(current, Set.of())) {
+                    if (parent.equals(required.binaryName())) {
+                        return true;
+                    }
+                    pending.add(parent);
+                }
+            }
+            return false;
         }
     }
 

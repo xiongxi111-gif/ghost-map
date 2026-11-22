@@ -9,9 +9,9 @@ Dates below are Beijing dates. Each task lists the requirements it satisfies.
   - Commit `/.kiro` (steering, specs, hooks, settings); verify it is not gitignored
   - Record "pre-existing code: none" in README; declare dependencies
   - _Requirements: 11.1, 11.2_
-- [ ] 2. Model module: node/edge/evidence records, canonical ids, snapshot JSON (de)serialisation
-  - [ ] 2.1 Id formatter/parser with jqwik round-trip property (inner/anonymous classes, arrays, primitives)
-  - [ ] 2.2 Confidence algebra (noisy-OR) with order-independence, bounds and monotonicity properties
+- [x] 2. Model module: node/edge/evidence records, canonical ids, snapshot JSON (de)serialisation
+  - [x] 2.1 Id formatter/parser with jqwik round-trip property (inner/anonymous classes, arrays, primitives)
+  - [x] 2.2 Confidence algebra (noisy-OR) with order-independence, bounds and monotonicity properties
   - _Requirements: 5.1, 5.3, 5.7, 5.8_
 - [ ] 3. Write `fixtures/haunted-house` (synthetic, from scratch) + `ground-truth.json`
   - Lombok `@Data`/`@RequiredArgsConstructor`, interface with 2 impls + `@Qualifier`, XML `parent` bean,

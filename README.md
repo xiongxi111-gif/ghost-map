@@ -6,7 +6,7 @@
 > (a tree-sitter parser, a JVM bytecode reader, a Spring wiring resolver, and a live JVM probe), stitched
 > together by one *join policy* and brought to life for agents through MCP.
 
-Status: M0 foundation (build skeleton, no analysis code yet). **Pre-existing code: none.** All code in this repository is written from scratch during the
+Status: M0 foundation (Maven build and graph model complete; analysis layers not started). **Pre-existing code: none.** All code in this repository is written from scratch during the
 Kiroween submission period. Demos use public open-source Java projects only.
 
 ---

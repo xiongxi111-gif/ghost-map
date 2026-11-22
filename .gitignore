@@ -3,6 +3,7 @@
 .m2/
 build/
 target/
+.jqwik-database
 out/
 *.class
 # Web

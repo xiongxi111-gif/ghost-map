@@ -9,5 +9,6 @@ public enum DispatchKind {
     REFLECTION,
     PROXY,
     LAMBDA,
-    REGISTRY
+    REGISTRY,
+    UNKNOWN
 }

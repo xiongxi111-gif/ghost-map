@@ -66,6 +66,46 @@ class GhostMapCliTest {
     }
 
     @Test
+    void runtimeFlagBuildsHonestRecallPhantomsAndUnresolvedCounts() throws Exception {
+        CliTestCompiler.CompiledSample sample = CliTestCompiler.compile(temporaryDirectory.resolve("runtime-sample"),
+                "sample.Caller", """
+                        package sample;
+                        import java.lang.reflect.Method;
+                        class Caller {
+                            void call() { Target.hit(); }
+                            Object reflect(Method method, Object target) throws Exception {
+                                return method.invoke(target);
+                            }
+                        }
+                        class Target { static void hit() { } }
+                        """);
+        Path runtime = temporaryDirectory.resolve("runtime.jsonl");
+        Files.writeString(runtime, """
+                {"schema":"ghostmap.runtime/v1","runId":"cli-run","startedAt":"2026-11-22T00:00:00Z","endedAt":"2026-11-22T00:00:01Z","reason":"shutdown","filter":{"include":["sample"],"exclude":[]},"edgeLimit":100,"droppedEvents":0,"edges":[{"caller":{"owner":"sample.Caller","name":"call","descriptor":"()V"},"callee":{"owner":"sample.Target","name":"hit","descriptor":"()V"},"hits":2,"dispatch":"UNKNOWN"},{"caller":{"owner":"sample.Caller","name":"call","descriptor":"()V"},"callee":{"owner":"sample.Hidden","name":"missing","descriptor":"()V"},"hits":1,"dispatch":"UNKNOWN"}]}
+                """);
+        Path output = temporaryDirectory.resolve("runtime.ghostmap.json");
+
+        Execution execution = execute("index", "--src", sample.sourceRoot().toString(), "--classes",
+                sample.classes().toString(), "--runtime", runtime.toString(), "--out", output.toString());
+
+        assertEquals(0, execution.exitCode(), execution.error());
+        Snapshot snapshot = SnapshotJson.fromJson(Files.readString(output));
+        assertEquals(Set.of(LayerId.AST, LayerId.BYTECODE, LayerId.RUNTIME), snapshot.layersRun());
+        assertEquals(1, snapshot.runtimeRuns().size());
+        assertEquals("cli-run", snapshot.runtimeRuns().getFirst().runId());
+        assertEquals(1, snapshot.report().phantomEdges());
+        assertEquals(1L, snapshot.report().unresolvedSites().get(dev.ghostmap.model.UnresolvedSiteKind.REFLECTION));
+        assertEquals(0.5, snapshot.report().staticRecallOnExercised().astOnly().orElseThrow());
+        assertEquals(0.5, snapshot.report().staticRecallOnExercised().ghostMap().orElseThrow());
+        assertEquals(3, snapshot.report().exercised().methodsExercised());
+        assertTrue(snapshot.report().exercised().methodsInScope() >= 3);
+        assertTrue(snapshot.report().caveat().contains("only over code exercised"));
+        assertTrue(snapshot.report().caveat().contains("must not be extrapolated"));
+        assertTrue(snapshot.report().edgesByProvenance().keySet().stream()
+                .anyMatch(key -> key.contains("RUNTIME")));
+    }
+
+    @Test
     void missingRequiredOptionsAndRootsFailWithoutSnapshots() throws Exception {
         Path output = temporaryDirectory.resolve("missing.ghostmap.json");
         Execution missingOutput = execute("index", "--src", temporaryDirectory.toString());

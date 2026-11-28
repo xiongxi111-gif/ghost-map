@@ -146,6 +146,15 @@ public record JoinedEdge(SymbolId from, Optional<CanonicalId> target, Optional<S
                 List.of(updatedTarget), staleBuild);
     }
 
+    public JoinedEdge withRuntimeEvidence(List<Evidence.Runtime> runtimeEvidence,
+                                          List<EvidenceContribution> updatedContributions,
+                                          DispatchKind updatedDispatch) {
+        List<Evidence> updatedEvidence = new ArrayList<>(supplementaryEvidence);
+        updatedEvidence.addAll(runtimeEvidence);
+        return new JoinedEdge(from, target, bytecodeSite, sourceFact, bytecodeFact, updatedEvidence,
+                updatedContributions, rules, updatedDispatch, EdgeStatus.CONFIRMED, candidates, staleBuild);
+    }
+
     private JoinedEdge copy(Optional<CanonicalId> updatedTarget, Optional<SiteId> updatedSite,
                             List<EvidenceContribution> updatedContributions, List<String> updatedRules,
                             DispatchKind updatedDispatch, EdgeStatus updatedStatus,

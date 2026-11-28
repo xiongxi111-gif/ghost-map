@@ -5,14 +5,16 @@ import dev.ghostmap.core.join.rules.R02CallMatch;
 import dev.ghostmap.core.join.rules.R03GeneratedMembers;
 import dev.ghostmap.core.join.rules.R04VirtualExpansion;
 import dev.ghostmap.core.join.rules.R05WiringNarrowing;
+import dev.ghostmap.core.join.rules.R06RuntimeFloor;
 import dev.ghostmap.core.join.rules.R07DynamicSites;
+import dev.ghostmap.core.join.rules.R08Phantoms;
 import dev.ghostmap.core.join.rules.R09Conflicts;
 import dev.ghostmap.core.layer.LayerFacts;
 
 import java.util.Arrays;
 import java.util.List;
 
-/** Fixed-order static join policy; runtime rules remain unimplemented. */
+/** Fixed-order join policy, including runtime floor (R06) and phantom (R08) rules. */
 public final class JoinPolicy {
     public static final String VERSION = "jp/v1";
 
@@ -42,7 +44,9 @@ public final class JoinPolicy {
                 new R03GeneratedMembers(),
                 new R04VirtualExpansion(),
                 new R05WiringNarrowing(),
+                new R06RuntimeFloor(),
                 new R07DynamicSites(),
+                new R08Phantoms(),
                 new R09Conflicts());
     }
 }

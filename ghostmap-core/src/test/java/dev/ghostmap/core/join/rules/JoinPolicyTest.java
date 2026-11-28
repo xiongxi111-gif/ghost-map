@@ -34,7 +34,8 @@ class JoinPolicyTest {
     @Test
     void emptyAndSingleLayerFactsDoNotCrash() {
         JoinPolicy policy = new JoinPolicy();
-        assertEquals(List.of("R01", "R02", "R03", "R04", "R05", "R07", "R09"), policy.ruleIds());
+        assertEquals(List.of("R01", "R02", "R03", "R04", "R05", "R06", "R07", "R08", "R09"),
+                policy.ruleIds());
         assertEquals(new JoinedGraph(List.of(), List.of(), List.of(), List.of()), policy.join());
 
         TypeId type = new TypeId("sample.Ghost");

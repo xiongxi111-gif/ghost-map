@@ -5,9 +5,11 @@ import dev.ghostmap.core.join.JoinedGraph;
 import dev.ghostmap.core.layer.LayerFacts;
 import dev.ghostmap.core.layer.LayerInput;
 import dev.ghostmap.core.layer.bytecode.BytecodeLayer;
+import dev.ghostmap.core.layer.runtime.RuntimeLayer;
 import dev.ghostmap.core.layer.source.SourceLayer;
 import dev.ghostmap.model.CodeVersion;
 import dev.ghostmap.model.LayerId;
+import dev.ghostmap.model.RuntimeRun;
 import dev.ghostmap.model.Snapshot;
 import dev.ghostmap.model.SnapshotJson;
 import picocli.CommandLine;
@@ -43,6 +45,10 @@ final class IndexCommand implements Callable<Integer> {
             description = "Class directories or JARs. Omit for AST-only indexing.")
     private List<Path> classRoots = new ArrayList<>();
 
+    @Option(names = "--runtime", split = ",", paramLabel = "<runtime.jsonl>[,...]",
+            description = "Probe runtime JSONL files. Omit to keep indexing static-only.")
+    private List<Path> runtimeFiles = new ArrayList<>();
+
     @Option(names = "--ast-only", description = "Reject class roots and run only the source layer.")
     private boolean astOnly;
 
@@ -56,6 +62,7 @@ final class IndexCommand implements Callable<Integer> {
         try {
             Path source = validateSourceRoot(sourceRoot);
             List<Path> classes = validateClassRoots(classRoots);
+            List<Path> runtime = validateRuntimeFiles(runtimeFiles);
             if (astOnly && !classes.isEmpty()) {
                 throw new CommandLine.ParameterException(spec.commandLine(),
                         "--ast-only cannot be combined with --classes");
@@ -63,22 +70,28 @@ final class IndexCommand implements Callable<Integer> {
             Path destination = validateOutput(output);
             Instant analysedAt = Instant.now();
 
+            List<LayerFacts> facts = new ArrayList<>();
+            Set<LayerId> layers = EnumSet.noneOf(LayerId.class);
             LayerFacts sourceFacts = new SourceLayer().analyse(new LayerInput(source));
-            JoinedGraph graph;
-            Set<LayerId> layers;
-            if (classes.isEmpty()) {
-                graph = new JoinPolicy().join(sourceFacts);
-                layers = Set.of(LayerId.AST);
-            } else {
-                LayerFacts bytecodeFacts = new BytecodeLayer().analyse(LayerInput.forClassRoots(classes));
-                graph = new JoinPolicy().join(sourceFacts, bytecodeFacts);
-                layers = EnumSet.of(LayerId.AST, LayerId.BYTECODE);
+            facts.add(sourceFacts);
+            layers.add(LayerId.AST);
+            if (!classes.isEmpty()) {
+                facts.add(new BytecodeLayer().analyse(LayerInput.forClassRoots(classes)));
+                layers.add(LayerId.BYTECODE);
             }
+            List<RuntimeRun> runtimeRuns = List.of();
+            if (!runtime.isEmpty()) {
+                LayerFacts runtimeFacts = new RuntimeLayer().analyse(LayerInput.forRuntimeFiles(runtime));
+                facts.add(runtimeFacts);
+                layers.add(LayerId.RUNTIME);
+                runtimeRuns = RuntimeLayer.runtimeRuns(runtimeFacts);
+            }
+            JoinedGraph graph = new JoinPolicy().join(facts);
             graph.diagnostics().forEach(diagnostic -> error.printf("warning: %s:%d [%s] %s%n",
                     diagnostic.file(), diagnostic.line(), diagnostic.code(), diagnostic.message()));
 
             CodeVersion version = TargetMetadata.resolve(source, classes, analysedAt);
-            Snapshot snapshot = new SnapshotAssembler().assemble(graph, version, layers);
+            Snapshot snapshot = new SnapshotAssembler().assemble(graph, version, layers, runtimeRuns);
             writeAtomically(destination, SnapshotJson.toJson(snapshot));
             spec.commandLine().getOut().printf("wrote %s (%d nodes, %d edges, layers=%s)%n",
                     destination, snapshot.nodes().size(), snapshot.edges().size(), snapshot.layersRun());
@@ -119,6 +132,23 @@ final class IndexCommand implements Callable<Integer> {
             }
             if (!Files.isReadable(normalized)) {
                 throw new CommandLine.ParameterException(spec.commandLine(), "class root is not readable: " + root);
+            }
+            validated.add(normalized);
+        }
+        return List.copyOf(validated);
+    }
+
+    private List<Path> validateRuntimeFiles(List<Path> files) {
+        List<Path> validated = new ArrayList<>();
+        for (Path file : files) {
+            Path normalized = file.toAbsolutePath().normalize();
+            if (!Files.isRegularFile(normalized)) {
+                throw new CommandLine.ParameterException(spec.commandLine(),
+                        "runtime input does not exist or is not a file: " + file);
+            }
+            if (!Files.isReadable(normalized)) {
+                throw new CommandLine.ParameterException(spec.commandLine(),
+                        "runtime input is not readable: " + file);
             }
             validated.add(normalized);
         }

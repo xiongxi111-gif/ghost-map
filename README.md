@@ -6,7 +6,7 @@
 > (a tree-sitter parser, a JVM bytecode reader, a Spring wiring resolver, and a live JVM probe), stitched
 > together by one *join policy* and brought to life for agents through MCP.
 
-Status: Task 13 pinned Petclinic probe workloads complete; runtime join rules remain a future task. **Pre-existing code: none.** All code in this repository was written from scratch during the
+Status: Task 14 runtime join rules (R06 floor, R08 phantoms) and the first spring-framework-petclinic blind-spot report are complete. Transaction cards, full MCP, and the web UI remain ahead. **Pre-existing code: none.** All code in this repository was written from scratch during the
 Kiroween submission period. Demos use public open-source Java projects only.
 
 ---
@@ -140,7 +140,7 @@ Build/install the reactor artifacts once, then run the configured picocli main c
   -Dexec.args="index --src fixtures/haunted-house/src/main/java --classes fixtures/haunted-house/target/classes --out snapshots/haunted-house-static.ghostmap.json"
 ```
 
-Omit `--classes` for an AST-only snapshot. `--classes` accepts comma-separated class directories or JARs.
+Omit `--classes` for an AST-only snapshot. `--classes` accepts comma-separated class directories or JARs. Pass `--runtime path/to/runtime-edges.jsonl` to join a probe trace with the R06 runtime floor and R08 phantom rules. The first spring-framework-petclinic checkpoint is in [`bench/blind-spot-spring-framework-petclinic.md`](bench/blind-spot-spring-framework-petclinic.md); that snapshot joined AST, BYTECODE, and RUNTIME only, and does not include the Spring wiring layer.
 `scripts/regen-snapshot.sh` wraps the same command and explicitly skips the not-yet-implemented benchmark/diff steps.
 
 ## Runtime probe Java agent

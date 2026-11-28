@@ -18,6 +18,7 @@ import dev.ghostmap.model.Node;
 import dev.ghostmap.model.NodeKind;
 import dev.ghostmap.model.Snapshot;
 import dev.ghostmap.model.SnapshotJson;
+import dev.ghostmap.model.RuntimeRun;
 import dev.ghostmap.model.StaticRecall;
 import dev.ghostmap.model.ToolInfo;
 import dev.ghostmap.model.UnresolvedSiteKind;
@@ -35,21 +36,27 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.Set;
+import java.util.HashSet;
 
 final class SnapshotAssembler {
     private static final String ZERO_HASH = "sha256:" + "0".repeat(64);
 
     Snapshot assemble(JoinedGraph graph, CodeVersion codeVersion, Set<LayerId> layersRun) {
+        return assemble(graph, codeVersion, layersRun, List.of());
+    }
+
+    Snapshot assemble(JoinedGraph graph, CodeVersion codeVersion, Set<LayerId> layersRun,
+                      List<RuntimeRun> runtimeRuns) {
         List<Edge> edges = distinctEdges(graph.modelEdges());
         List<Node> nodes = closeNodeSet(graph.nodes(), edges);
         int materializedCalls = (int) graph.edges().stream().filter(edge -> edge.modelEdge().isPresent()).count();
         int unmaterialized = graph.edges().size() - materializedCalls;
         BlindSpotReport report = report(nodes, edges, unmaterialized);
         Snapshot placeholder = new Snapshot(Snapshot.SCHEMA, ZERO_HASH, codeVersion,
-                new ToolInfo("ghostmap", "0.1.0", JoinPolicy.VERSION), layersRun, List.of(), nodes, edges, report);
+                new ToolInfo("ghostmap", "0.1.0", JoinPolicy.VERSION), layersRun, runtimeRuns, nodes, edges, report);
         String snapshotId = hash(SnapshotJson.toJson(placeholder));
         return new Snapshot(Snapshot.SCHEMA, snapshotId, codeVersion, placeholder.tool(), layersRun,
-                List.of(), nodes, edges, report);
+                runtimeRuns, nodes, edges, report);
     }
 
     private static List<Edge> distinctEdges(List<Edge> edges) {
@@ -99,14 +106,67 @@ final class SnapshotAssembler {
                     .map(Enum::name).reduce((left, right) -> left + '+' + right).orElse("NONE");
             byProvenance.merge(key, 1L, Long::sum);
         }
+        Map<String, Node> nodesById = new LinkedHashMap<>();
+        nodes.forEach(node -> nodesById.put(node.id().value(), node));
         Map<UnresolvedSiteKind, Long> unresolved = new EnumMap<>(UnresolvedSiteKind.class);
-        long methods = nodes.stream().filter(node -> node.kind() == NodeKind.METHOD).count();
-        String caveat = "L1/L2 snapshot only. Runtime coverage, recall, wiring, and R07 unresolved-site "
-                + "classification are not computed. " + unmaterialized
-                + " source call fact(s) lacked canonical endpoints and remain outside snapshot edges.";
-        return new BlindSpotReport(byProvenance, unresolved, 0,
-                new ExercisedCoverage(0, methods),
-                new StaticRecall(OptionalDouble.empty(), OptionalDouble.empty()), caveat);
+        for (UnresolvedSiteKind kind : UnresolvedSiteKind.values()) {
+            unresolved.put(kind, 0L);
+        }
+        edges.stream().filter(Edge.Unresolved.class::isInstance).map(Edge.Unresolved.class::cast)
+                .forEach(edge -> unresolved.merge(unresolvedKind(edge, nodesById), 1L, Long::sum));
+
+        List<Edge> runtimeEdges = edges.stream().filter(edge -> edge.provenance().contains(LayerId.RUNTIME)).toList();
+        long phantomEdges = edges.stream().filter(edge -> edge.kind() == dev.ghostmap.model.EdgeKind.PHANTOM).count();
+        Set<CanonicalId> exercisedMethods = new HashSet<>();
+        for (Edge edge : runtimeEdges) {
+            if (edge.from() instanceof MethodId method) {
+                exercisedMethods.add(method);
+            } else if (edge.from() instanceof dev.ghostmap.model.CanonicalId.SiteId site) {
+                exercisedMethods.add(site.method());
+            }
+            edge.target().filter(MethodId.class::isInstance).map(MethodId.class::cast)
+                    .ifPresent(exercisedMethods::add);
+        }
+        long methodsInScope = nodes.stream().filter(node -> node.kind() == NodeKind.METHOD).count();
+        StaticRecall recall;
+        String caveat;
+        if (runtimeEdges.isEmpty()) {
+            recall = new StaticRecall(OptionalDouble.empty(), OptionalDouble.empty());
+            caveat = "No runtime facts were joined; static recall is unavailable. Recall is measured only over "
+                    + "code exercised by recorded workloads and is never extrapolated to un-exercised code. ";
+        } else {
+            long astPredicted = runtimeEdges.stream()
+                    .filter(edge -> edge.kind() != dev.ghostmap.model.EdgeKind.PHANTOM)
+                    .filter(edge -> edge.provenance().contains(LayerId.AST)).count();
+            long ghostMapPredicted = runtimeEdges.stream()
+                    .filter(edge -> edge.kind() != dev.ghostmap.model.EdgeKind.PHANTOM).count();
+            double denominator = runtimeEdges.size();
+            recall = new StaticRecall(OptionalDouble.of(astPredicted / denominator),
+                    OptionalDouble.of(ghostMapPredicted / denominator));
+            caveat = "Recall is measured only over code exercised by the recorded workloads and must not be "
+                    + "extrapolated to un-exercised code. ";
+        }
+        caveat += unmaterialized + " source call fact(s) lacked canonical endpoints and remain outside snapshot edges.";
+        return new BlindSpotReport(byProvenance, unresolved, phantomEdges,
+                new ExercisedCoverage(exercisedMethods.size(), methodsInScope), recall, caveat);
+    }
+
+    private static UnresolvedSiteKind unresolvedKind(Edge.Unresolved edge, Map<String, Node> nodesById) {
+        return switch (edge.dispatch()) {
+            case REFLECTION -> UnresolvedSiteKind.REFLECTION;
+            case REGISTRY -> UnresolvedSiteKind.REGISTRY;
+            case PROXY -> UnresolvedSiteKind.PROXY;
+            case DYNAMIC -> {
+                Node site = nodesById.get(edge.unresolvedSite().value());
+                String dynamicKind = site == null ? "" : Optional.ofNullable(site.attrs().get("dynamicKind"))
+                        .filter(StringValue.class::isInstance).map(StringValue.class::cast)
+                        .map(StringValue::value).orElse("");
+                yield "GET_BEAN".equals(dynamicKind) ? UnresolvedSiteKind.GETBEAN
+                        : "REGISTRY".equals(dynamicKind) ? UnresolvedSiteKind.REGISTRY
+                        : UnresolvedSiteKind.OTHER;
+            }
+            default -> UnresolvedSiteKind.OTHER;
+        };
     }
 
     private static String hash(String value) {

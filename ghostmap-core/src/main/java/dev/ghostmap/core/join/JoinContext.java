@@ -5,6 +5,7 @@ import dev.ghostmap.core.layer.EdgeFact;
 import dev.ghostmap.core.layer.FactNode;
 import dev.ghostmap.core.layer.LayerFacts;
 import dev.ghostmap.core.layer.SymbolId;
+import dev.ghostmap.core.layer.runtime.RuntimePair;
 import dev.ghostmap.model.CanonicalId;
 import dev.ghostmap.model.LayerId;
 import dev.ghostmap.model.Node;
@@ -26,6 +27,7 @@ public final class JoinContext {
     private final Set<LayerId> layers;
     private final Map<String, CanonicalId> identities = new HashMap<>();
     private final Set<CanonicalId> potentialSourceIdentities = new HashSet<>();
+    private final Set<RuntimePair> consumedRuntimePairs = new HashSet<>();
     private final List<Diagnostic> diagnostics = new ArrayList<>();
     private List<Node> nodes = List.of();
     private List<FactNode> unresolvedNodes = List.of();
@@ -98,6 +100,14 @@ public final class JoinContext {
 
     public Set<CanonicalId> potentialSourceIdentities() {
         return Set.copyOf(potentialSourceIdentities);
+    }
+
+    public void markRuntimeConsumed(RuntimePair pair) {
+        consumedRuntimePairs.add(pair);
+    }
+
+    public boolean runtimeConsumed(RuntimePair pair) {
+        return consumedRuntimePairs.contains(pair);
     }
 
     public List<Node> nodes() {

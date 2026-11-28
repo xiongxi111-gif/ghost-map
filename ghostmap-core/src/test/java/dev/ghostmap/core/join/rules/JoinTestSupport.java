@@ -11,6 +11,7 @@ import dev.ghostmap.core.layer.bytecode.JvmInvocationKind;
 import dev.ghostmap.core.layer.source.DynamicCallKind;
 import dev.ghostmap.core.layer.source.SourceCallFact;
 import dev.ghostmap.core.layer.source.SourceCallSite;
+import dev.ghostmap.core.layer.runtime.RuntimeCallFact;
 import dev.ghostmap.core.layer.wiring.InjectionKind;
 import dev.ghostmap.core.layer.wiring.WiringBindFact;
 import dev.ghostmap.core.layer.wiring.WiringInjectionFact;
@@ -32,6 +33,8 @@ import dev.ghostmap.model.LayerId;
 import dev.ghostmap.model.NodeKind;
 import dev.ghostmap.model.SourceLocation;
 
+import java.nio.file.Path;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -141,6 +144,13 @@ final class JoinTestSupport {
                 new Evidence.Bytecode("Sample.class", offset, invocation.name().toLowerCase(), owner,
                         target.name(), target.descriptor()), OptionalInt.of(line), Optional.of("Sample.java"),
                 dynamicKind, dispatch, Optional.empty(), constantKey);
+    }
+
+    static RuntimeCallFact runtimeCall(MethodId caller, MethodId callee, long hits, DispatchKind dispatch) {
+        return new RuntimeCallFact(new SymbolId.Canonical(caller), new SymbolId.Canonical(callee),
+                "test-run", hits, dispatch,
+                Instant.parse("2026-11-22T00:00:00Z"), Instant.parse("2026-11-22T00:00:01Z"),
+                List.of("sample"), Path.of("runtime.jsonl"));
     }
 
     static WiringBindFact wiringBind(BeanId bean, TypeId type) {

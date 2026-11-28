@@ -49,7 +49,7 @@ Dates below are Beijing dates. Each task lists the requirements it satisfies.
   bounded map, shutdown flush to JSONL, dispatch-kind detection; never writes to target stdout
   - _Requirements: 4.1–4.4_
 - [x] 13. Workload scripts: run petclinic test suites / scripted HTTP calls with the probe attached
-- [ ] 14. Join rules R06 Runtime floor and R08 Phantoms; blind-spot report
+- [x] 14. Join rules R06 Runtime floor and R08 Phantoms; blind-spot report
   - property: conservation of runtime pairs
   - _Requirements: 5.6, 6.1–6.3_
   - **Checkpoint:** first honest blind-spot report on spring-framework-petclinic.
